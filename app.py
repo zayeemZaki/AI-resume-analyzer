@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import os
-from utils import extract_text, preprocess_text, rank_resume, analyze_pdf_formatting
+from utils import extract_text, preprocess_text, rank_resume, analyze_pdf_formatting, check_consistency
 
 app = Flask(__name__)
 
@@ -11,8 +11,9 @@ def analyze_resume():
     """
     Analyze a resume against a job description by performing:
     1. Keyword and similarity analysis.
-    2. Formatting analysis (font consistency, bullet usage, etc.).
-    Returns a combined JSON response.
+    2. Overall formatting analysis.
+    3. Consistency checks (including headings and vertical spacing).
+    Returns a combined JSON response with detailed feedback.
     """
     data = request.json
     resume_filename = data.get('resume_filename')
@@ -29,14 +30,12 @@ def analyze_resume():
     if not resume_text:
         return jsonify({"error": "Could not extract text from resume"}), 500
 
-    # Preprocess the text for keyword analysis
+    # Preprocess texts for keyword analysis
     resume_text_processed = preprocess_text(resume_text)
     job_desc_processed = preprocess_text(job_desc)
-
-    # Run keyword similarity analysis
     keyword_result = rank_resume(resume_text_processed, job_desc_processed)
 
-    # Run formatting analysis (assuming the resume is a PDF)
+    # Overall formatting analysis
     formatting_results = analyze_pdf_formatting(resume_path)
     formatting_messages = []
     if formatting_results["unique_font_names"] > 1:
@@ -46,9 +45,12 @@ def analyze_resume():
     if formatting_results["bullet_percentage"] < 5:
         formatting_messages.append("Few or no bullet points detected; consider using bullets for clarity.")
     if not formatting_messages:
-        formatting_messages.append("Formatting looks good overall!")
+        formatting_messages.append("Overall formatting looks good!")
+    
+    # Detailed consistency checks (headings and vertical spacing)
+    consistency_messages = check_consistency(resume_path)
+    formatting_messages.extend(consistency_messages)
 
-    # Merge both feedback sets into one response
     response = {
         "score": keyword_result["score"],
         "feedback": keyword_result["feedback"],
