@@ -5,12 +5,73 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 from collections import Counter
+import re
 
 # Load the NLP model
 nlp = spacy.load("en_core_web_sm")
 
 # Load the SentenceTransformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
+def normalize_font_name(font_name):
+    """
+    Normalize font names by removing common style indicators such as Bold, Italic, Regular, MT,
+    and any hyphens or underscores. This ensures that fonts from the same family are treated identically.
+    """
+    if '+' in font_name:
+        font_name = font_name.split('+')[-1]
+    normalized = re.sub(r'(Bold|Italic|Regular|MT)', '', font_name, flags=re.IGNORECASE)
+    normalized = normalized.replace('-', '').replace('_', '')
+    return normalized.strip().lower()
+
+def analyze_pdf_formatting(pdf_path):
+    """
+    Analyzes a PDF resume for font consistency, bullet usage, etc.
+    Returns a dictionary with summary statistics that you can use to assess formatting.
+    Fonts that normalize to 'symbol' are ignored.
+    """
+    font_usage = set()
+    bullet_count = 0
+    total_lines = 0
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text()
+            if not text:
+                continue
+
+            lines = text.split("\n")
+            total_lines += len(lines)
+            for line in lines:
+                line_stripped = line.strip()
+                if line_stripped.startswith("-") or line_stripped.startswith("•") or line_stripped.startswith("*"):
+                    bullet_count += 1
+
+            for char in page.chars:
+                raw_font = char.get("fontname", "")
+                normalized_font = normalize_font_name(raw_font)
+                # Ignore fonts that normalize to "symbol"
+                if normalized_font == "symbol":
+                    continue
+                size = round(char.get("size", 0), 1)
+                font_usage.add((normalized_font, size))
+
+    unique_font_names = len({f[0] for f in font_usage})
+    unique_font_sizes = len({f[1] for f in font_usage})
+    bullet_percentage = (bullet_count / total_lines) * 100 if total_lines else 0
+
+    return {
+        "total_lines": total_lines,
+        "bullet_count": bullet_count,
+        "bullet_percentage": round(bullet_percentage, 2),
+        "font_variations": len(font_usage),
+        "unique_font_names": unique_font_names,
+        "unique_font_sizes": unique_font_sizes,
+        "all_fonts_and_sizes": list(font_usage),
+    }
+
+
 
 def filter_generic_keywords(keywords, generic_words, threshold=0.6):
     """
