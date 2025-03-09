@@ -7,7 +7,7 @@ nlp = spacy.load("en_core_web_sm")
 
 def filter_generic_keywords(keywords, generic_words, threshold=0.6):
     """
-    Filter out keywords that are semantically similar to generic words.
+    Filters out keywords that are semantically similar to generic words.
     """
     filtered_keywords = []
     generic_embeddings = bert_model.encode(list(generic_words))
@@ -20,8 +20,8 @@ def filter_generic_keywords(keywords, generic_words, threshold=0.6):
 
 def extract_keywords(text, top_n=15, must_include=None):
     """
-    Extract top_n frequent and important keywords from the text.
-    Only considers nouns and proper nouns.
+    Extracts the top_n frequent keywords (nouns and proper nouns) from the text.
+    Also adds any must-include keywords if found.
     """
     if must_include is None:
         must_include = {"flask", "python", "nlp", "developer"}
@@ -38,7 +38,7 @@ def extract_keywords(text, top_n=15, must_include=None):
 
 def analyze_keywords(resume_text, job_text):
     """
-    Compare resume keywords with job description keywords.
+    Compares resume keywords with job description keywords.
     """
     job_keywords = set(extract_keywords(job_text, top_n=15))
     resume_keywords = set(extract_keywords(resume_text, top_n=15))
