@@ -26,14 +26,14 @@ def preprocess_text(text):
 
 def get_similarity(resume, job_desc):
     """
-    Compute similarity score using bert_model embeddings.
+    Computes similarity score using BERT embeddings.
     """
     embeddings = bert_model.encode([resume, job_desc])
     return cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
 
 def rank_resume(resume_text, job_text):
     """
-    Rank resume against job description and suggest missing keywords.
+    Ranks the resume against the job description and suggests missing keywords.
     """
     score = float(get_similarity(resume_text, job_text))
     feedback = "Good Match" if score > 0.7 else "Needs Improvement"

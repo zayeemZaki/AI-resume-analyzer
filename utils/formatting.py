@@ -1,7 +1,6 @@
 import pdfplumber
 import re
-from .models import bert_model  # (if needed for further processing; otherwise, this file focuses on PDF data)
-# No spaCy needed here
+from .models import bert_model  # kept for consistency, though not used here
 
 def normalize_font_name(font_name):
     """
@@ -59,12 +58,14 @@ def analyze_pdf_formatting(pdf_path):
 
 def get_line_info(pdf_path, y_threshold=2):
     """
-    Extracts lines from the PDF along with their average font size, common font, and vertical position.
+    Extracts lines from the PDF along with their average font size, common font, vertical position,
+    page number, and left margin (x-coordinate of the first character).
     Groups characters by similar y coordinates.
     """
     lines_info = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
+            page_number = page.page_number
             chars = sorted(page.chars, key=lambda c: float(c['top']))
             current_line = []
             last_top = None
@@ -80,11 +81,14 @@ def get_line_info(pdf_path, y_threshold=2):
                         avg_size = sum(sizes) / len(sizes)
                         fonts = [normalize_font_name(c['fontname']) for c in current_line]
                         common_font = max(set(fonts), key=fonts.count)
+                        left_margin = min(float(c.get('x0', 0)) for c in current_line)
                         lines_info.append({
                             'text': text,
                             'avg_size': avg_size,
                             'font': common_font,
-                            'top': last_top
+                            'top': last_top,
+                            'page': page_number,
+                            'left': left_margin
                         })
                     current_line = [char]
                     last_top = top
@@ -94,13 +98,71 @@ def get_line_info(pdf_path, y_threshold=2):
                 avg_size = sum(sizes) / len(sizes)
                 fonts = [normalize_font_name(c['fontname']) for c in current_line]
                 common_font = max(set(fonts), key=fonts.count)
+                left_margin = min(float(c.get('x0', 0)) for c in current_line)
                 lines_info.append({
                     'text': text,
                     'avg_size': avg_size,
                     'font': common_font,
-                    'top': last_top
+                    'top': last_top,
+                    'page': page_number,
+                    'left': left_margin
                 })
     return lines_info
+
+def check_spacing_consistency_grouped(pdf_path, y_threshold=2, spacing_threshold=0.6, margin_threshold=5):
+    """
+    Groups lines by similar left margins (within margin_threshold) and checks vertical spacing
+    consistency within each group.
+    
+    Returns detailed messages for each group.
+    """
+    from .grouping import extract_features  # in case needed
+    lines_info = get_line_info(pdf_path, y_threshold)
+    
+    groups = {}
+    for line in lines_info:
+        left = line['left']
+        found_group = None
+        for key in groups.keys():
+            if abs(key - left) <= margin_threshold:
+                found_group = key
+                break
+        if found_group is not None:
+            groups[found_group].append(line)
+        else:
+            groups[left] = [line]
+    
+    messages = []
+    overall_spacings = []
+    for group_left, group_lines in groups.items():
+        if len(group_lines) < 2:
+            messages.append(f"Not enough lines with left margin ~{group_left:.2f} to analyze spacing.")
+            continue
+        sorted_group = sorted(group_lines, key=lambda x: x['top'])
+        spacings = [sorted_group[i+1]['top'] - sorted_group[i]['top'] for i in range(len(sorted_group)-1)]
+        avg_spacing = sum(spacings) / len(spacings)
+        min_spacing = min(spacings)
+        max_spacing = max(spacings)
+        overall_spacings.extend(spacings)
+        spacing_range = max_spacing - min_spacing
+        messages.append(
+            f"Group with left margin ~{group_left:.2f}: Average spacing = {avg_spacing:.2f} points (min: {min_spacing:.2f}, max: {max_spacing:.2f})."
+        )
+        if spacing_range > (avg_spacing * spacing_threshold):
+            messages.append(
+                f"Group with left margin ~{group_left:.2f} shows significant spacing variation; consider standardizing spacing within this section."
+            )
+        else:
+            messages.append(
+                f"Group with left margin ~{group_left:.2f} spacing appears consistent."
+            )
+    if overall_spacings:
+        overall_avg = sum(overall_spacings) / len(overall_spacings)
+        messages.insert(0, f"Overall average spacing across groups: {overall_avg:.2f} points.")
+    else:
+        messages.insert(0, "No overall spacing data available.")
+    
+    return messages
 
 def check_spacing_consistency(pdf_path, y_threshold=2):
     """
@@ -125,7 +187,7 @@ def check_spacing_consistency(pdf_path, y_threshold=2):
     messages = []
     messages.append(f"Average vertical spacing is {avg_spacing:.2f} points (min: {min_spacing:.2f}, max: {max_spacing:.2f}).")
     if spacing_range > (avg_spacing * 0.5):
-        messages.append("The vertical spacing varies significantly; consider standardizing line spacing for consistency.")
+        messages.append("The vertical spacing varies significantly; consider standardizing line spacing (e.g., use a consistent leading value).")
     else:
         messages.append("Vertical spacing is consistent.")
     
@@ -139,24 +201,39 @@ def check_spacing_consistency(pdf_path, y_threshold=2):
 def check_consistency(pdf_path):
     """
     Checks for consistency in headings (heuristically, uppercase lines) and vertical spacing.
-    Returns detailed consistency warnings.
+    Returns detailed consistency warnings including:
+      - Specific headings (with page numbers and text) that deviate from the reference style.
+      - Detailed spacing metrics for groups based on left margin.
     """
     messages = []
     lines_info = get_line_info(pdf_path)
+    # Identify headings: lines that are all uppercase and longer than 2 characters
     headings = [line for line in lines_info if line['text'].isupper() and len(line['text']) > 2]
     if headings:
-        sizes = [h['avg_size'] for h in headings]
-        fonts = [h['font'] for h in headings]
-        unique_sizes = set(round(s, 1) for s in sizes)
-        unique_fonts = set(fonts)
-        if len(unique_sizes) > 1:
-            messages.append("Inconsistent font sizes among headings: " + ", ".join(str(s) for s in unique_sizes))
-        if len(unique_fonts) > 1:
-            messages.append("Inconsistent font families among headings: " + ", ".join(unique_fonts))
+        font_counts = {}
+        size_counts = {}
+        for h in headings:
+            font = h['font']
+            size = round(h['avg_size'], 1)
+            font_counts[font] = font_counts.get(font, 0) + 1
+            size_counts[size] = size_counts.get(size, 0) + 1
+        ref_font = max(font_counts, key=font_counts.get)
+        ref_size = max(size_counts, key=size_counts.get)
+        messages.append(f"Reference heading style: font '{ref_font}' at size {ref_size}.")
+        for h in headings:
+            current_size = round(h['avg_size'], 1)
+            current_font = h['font']
+            page = h.get('page', 'N/A')
+            text = h['text']
+            if current_font != ref_font or current_size != ref_size:
+                messages.append(
+                    f"Heading on page {page} - '{text}': font '{current_font}', size {current_size} deviates from reference; consider changing it to font '{ref_font}' at size {ref_size}."
+                )
     else:
         messages.append("No headings identified to check consistency.")
     
-    spacing_info = check_spacing_consistency(pdf_path)
-    messages.extend(spacing_info["messages"])
+    # Incorporate grouped spacing feedback
+    spacing_messages = check_spacing_consistency_grouped(pdf_path)
+    messages.extend(spacing_messages)
     
     return messages
