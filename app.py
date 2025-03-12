@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import os
 from utils.text_processing import extract_text, preprocess_text, rank_resume
 from utils.formatting import analyze_pdf_formatting, check_consistency
@@ -6,32 +6,20 @@ from utils.grouping import get_hybrid_grouping_analysis
 from utils.paraphrasing import always_paraphrase_description
 
 app = Flask(__name__)
-UPLOAD_FOLDER = "uploaded_resumes"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+RESUME_DIR = "resume_samples"  # Directory where resume PDFs are stored
 
-# Ensure upload folder exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/analyze_resume", methods=["POST"])
+@app.route('/analyze_resume', methods=['POST'])
 def analyze_resume():
-    if "resume" not in request.files:
-        return jsonify({"error": "No resume file uploaded"}), 400
+    data = request.json
+    resume_filename = data.get('resume_filename')
+    job_desc = data.get('job_description')
+    if not resume_filename or not job_desc:
+        return jsonify({"error": "Missing resume filename or job description"}), 400
 
-    resume_file = request.files["resume"]
-    job_desc = request.form.get("job_description")
+    resume_path = os.path.join(RESUME_DIR, resume_filename)
+    if not os.path.exists(resume_path):
+        return jsonify({"error": "Resume file not found"}), 404
 
-    if not job_desc:
-        return jsonify({"error": "Job description is required"}), 400
-
-    # Save the uploaded file
-    resume_path = os.path.join(app.config["UPLOAD_FOLDER"], resume_file.filename)
-    resume_file.save(resume_path)
-
-    # Extract text
     resume_text = extract_text(resume_path)
     if not resume_text:
         return jsonify({"error": "Could not extract text from resume"}), 500
@@ -59,13 +47,33 @@ def analyze_resume():
     # Hybrid Grouping Analysis
     grouping_analysis, grouping_messages = get_hybrid_grouping_analysis(resume_path, num_clusters=3)
 
+    # For each description in groups that likely contain project/experience text,
+    # always generate a paraphrased suggestion.
+    improved_descriptions = {}
+    for group_label, details in grouping_analysis.items():
+        if "Body Text" in group_label or "Sub-heading" in group_label:
+            suggestions = []
+            for line in details["lines"]:
+                suggested = always_paraphrase_description(line["text"])
+                suggestions.append({
+                    "page": line["page"],
+                    "original": line["text"],
+                    "suggested": suggested
+                })
+            if suggestions:
+                improved_descriptions[group_label] = suggestions
+
     response = {
         "score": keyword_result["score"],
         "feedback": keyword_result["feedback"],
         "missing_keywords": keyword_result["missing_keywords"],
+        "formatting_analysis": formatting_results,
         "formatting_feedback": formatting_messages,
+        "grouping_analysis": grouping_analysis,
+        "grouping_feedback": grouping_messages,
+        "improved_descriptions": improved_descriptions  # Suggestions for paraphrasing
     }
     return jsonify(response)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
