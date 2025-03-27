@@ -1,16 +1,39 @@
 from flask import Flask, request, jsonify, render_template
 import os
+import subprocess
+import json
+from pathlib import Path
 from utils.text_processing import extract_text, preprocess_text, rank_resume
-from utils.formatting import analyze_pdf_formatting, check_consistency
-from utils.grouping import get_hybrid_grouping_analysis
-from utils.paraphrasing import always_paraphrase_description
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploaded_resumes"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+CSHARP_CLI_PATH = Path("ResumeAnalyzerCLI/bin/Release/net9.0/ResumeAnalyzerCLI.dll")  # Fixed path
 
-# Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def run_csharp(command, file_path):
+    try:
+        # Convert Path to string and use absolute path
+        cli_path = str(CSHARP_CLI_PATH.absolute())
+        file_path = str(file_path.absolute())
+        
+        result = subprocess.run(
+            ["dotnet", cli_path, command, file_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30
+        )
+        print("C# Output:", result.stdout)  # Debug logging
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("C# Error:", e.stderr)  # Debug logging
+        return {"error": f"C# Error: {e.stderr}"}
+    except Exception as e:
+        print("General Error:", str(e))  # Debug logging
+        return {"error": f"Unexpected error: {str(e)}"}
 
 @app.route("/")
 def index():
@@ -19,53 +42,52 @@ def index():
 @app.route("/analyze_resume", methods=["POST"])
 def analyze_resume():
     if "resume" not in request.files:
-        return jsonify({"error": "No resume file uploaded"}), 400
-
+        return jsonify({"error": "No resume uploaded"}), 400
+    
     resume_file = request.files["resume"]
-    job_desc = request.form.get("job_description")
-
+    job_desc = request.form.get("job_description", "")
+    
     if not job_desc:
-        return jsonify({"error": "Job description is required"}), 400
+        return jsonify({"error": "Job description required"}), 400
 
-    # Save the uploaded file
-    resume_path = os.path.join(app.config["UPLOAD_FOLDER"], resume_file.filename)
+    resume_path = Path(app.config["UPLOAD_FOLDER"]) / resume_file.filename
     resume_file.save(resume_path)
 
-    # Extract text
+    # C# Analysis
+    csharp_parse = run_csharp("parse", resume_path)
+    csharp_validate = run_csharp("validate", resume_path)
+    csharp_grammar = run_csharp("grammar", resume_path)
+
+    # Python Analysis
     resume_text = extract_text(resume_path)
-    if not resume_text:
-        return jsonify({"error": "Could not extract text from resume"}), 500
+    keyword_result = rank_resume(preprocess_text(resume_text), preprocess_text(job_desc))
 
-    # Keyword Analysis
-    resume_text_processed = preprocess_text(resume_text)
-    job_desc_processed = preprocess_text(job_desc)
-    keyword_result = rank_resume(resume_text_processed, job_desc_processed)
-
-    # Formatting Analysis
-    formatting_results = analyze_pdf_formatting(resume_path)
-    formatting_messages = []
-    if formatting_results["unique_font_names"] > 1:
-        formatting_messages.append("Multiple font families detected; consider using a single font.")
-    if formatting_results["unique_font_sizes"] > 2:
-        formatting_messages.append("More than two font sizes used; keep it to 1-2 for consistency.")
-    if formatting_results["bullet_percentage"] < 5:
-        formatting_messages.append("Few or no bullet points detected; consider using bullets for clarity.")
-    if not formatting_messages:
-        formatting_messages.append("Overall formatting looks good!")
-    
-    consistency_messages = check_consistency(resume_path)
-    formatting_messages.extend(consistency_messages)
-
-    # Hybrid Grouping Analysis
-    grouping_analysis, grouping_messages = get_hybrid_grouping_analysis(resume_path, num_clusters=3)
-
+    # Build response
     response = {
-        "score": keyword_result["score"],
-        "feedback": keyword_result["feedback"],
-        "missing_keywords": keyword_result["missing_keywords"],
-        "formatting_feedback": formatting_messages,
+        "score": keyword_result.get("score", 0),
+        "missing_keywords": keyword_result.get("missing_keywords", []),
+        "sections": csharp_parse.get("Sections", {}),  # Capital S
+        "formatting_issues": csharp_validate.get("FormattingErrors", []),
+        "grammar_issues": csharp_grammar.get("GrammarIssues", []),
+        "keyword_feedback": keyword_result.get("feedback", []),
+        "errors": [
+            err for err in [
+                csharp_parse.get("Error"),
+                csharp_validate.get("Error"),
+                csharp_grammar.get("Error")
+            ] if err
+        ]
     }
+    
+    # Add debug info
+    print("C# Parse Result:", csharp_parse)
+    print("Keyword Result:", keyword_result)
+
+
+    if any(response["errors"]):
+        return jsonify({"error": "Analysis partial failure", "details": response}), 500
+
     return jsonify(response)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
