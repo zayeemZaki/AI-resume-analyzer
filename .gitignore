@@ -3,3 +3,4 @@ config.py
 .git
 .python-version
 __pycache__
+venv/
