@@ -1,34 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Resume Analyzer</title>
-    <link rel="stylesheet" href="static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ATS Resume Analyzer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
-    <div class="container">
-        <h1>AI Resume Analyzer</h1>
-        
-        <label for="resumeUpload">Upload Resume (PDF/DOCX):</label>
-        <input type="file" id="resumeUpload" accept=".pdf,.docx">
-        
-        <label for="jobDescription">Paste Job Description:</label>
-        <textarea id="jobDescription" placeholder="Enter job description here..."></textarea>
+  <div class="header">
+    <h1>⚡ ATS Resume Analyzer</h1>
+    <p>Upload your resume to see how well it performs with Applicant Tracking Systems (ATS)</p>
+    <div class="alert">⚠️ This tool analyzes your resume format and content for ATS compatibility. It is <strong>not</strong> a job-matching tool.</div>
+  </div>
 
-        <button id="analyzeResume" disabled>Analyze Resume</button>
-
-        <div id="loading" class="hidden">
-            <div class="spinner"></div>
-            <p>Analyzing Resume...</p>
-        </div>
-
-        <div id="results" class="hidden">
-            <h2>Analysis Results</h2>
-            <div id="resultsContent"></div>
-        </div>
+  <div class="features">
+    <div class="feature-card">
+      <h3>📄 ATS-Optimized</h3>
+      <p>Ensure your resume passes through Applicant Tracking Systems.</p>
     </div>
+    <div class="feature-card">
+      <h3>🔍 Keyword Analysis</h3>
+      <p>Identify missing keywords that could improve your resume.</p>
+    </div>
+    <div class="feature-card">
+      <h3>📊 Detailed Feedback</h3>
+      <p>Get actionable suggestions to improve your resume.</p>
+    </div>
+  </div>
 
-    <script src="static/script.js"></script>
+  <div class="upload-section">
+    <form id="resumeForm" enctype="multipart/form-data">
+      <div class="step">Step 1</div>
+      <label for="resumeUpload">Upload your resume</label>
+      <input type="file" id="resumeUpload" name="resume" accept=".pdf,.docx" />
+
+      <div class="step">Step 2</div>
+      <label for="jobDescription">Add job description for context</label>
+      <textarea id="jobDescription" placeholder="Paste the job description here..."></textarea>
+
+      <button type="submit" id="analyzeButton">🔍 Analyze ATS Compatibility</button>
+    </form>
+  </div>
+
+  <div id="loading" class="hidden">⏳ Analyzing your resume...</div>
+  <div id="results" class="hidden">
+    <div id="resultsContent"></div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
