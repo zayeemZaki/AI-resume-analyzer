@@ -4,3 +4,5 @@ config.py
 .python-version
 __pycache__
 venv/
+ResumeAnalyzerCLI/bin
+ResumeAnalyzerCLI/obj
