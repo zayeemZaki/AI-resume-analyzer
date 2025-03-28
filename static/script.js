@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <h3>Analysis Results</h3>
                         <div class="result-section">
                             <p><strong>Score:</strong> ${data.score}</p>
-                            <p><strong>Feedback:</strong> ${data.feedback}</p>
+                            <p><strong>Feedback:</strong> ${data.feedback || "No feedback available"}</p>
                         </div>
                         <div class="result-section">
                             <strong>Missing Keywords:</strong>
@@ -54,10 +54,20 @@ document.addEventListener("DOMContentLoaded", function () {
                             ` : `<p>✅ No missing keywords!</p>`}
                         </div>
                         <div class="result-section">
+                            <strong>Grammar Feedback:</strong>
+                            ${data.grammar_issues && data.grammar_issues.length > 0 ? `
+                                <ul>
+                                    ${data.grammar_issues.map((gi) => `<li>${gi}</li>`).join("")}
+                                </ul>
+                            ` : `<p>✅ No grammar issues found!</p>`}
+                        </div>
+                        <div class="result-section">
                             <strong>Formatting Feedback:</strong>
-                            <ul>
-                                ${data.formatting_feedback.map((fb) => `<li>${fb}</li>`).join("")}
-                            </ul>
+                            ${data.formatting_feedback && data.formatting_feedback.length > 0 ? `
+                                <ul>
+                                    ${data.formatting_feedback.map((fb) => `<li>${fb}</li>`).join("")}
+                                </ul>
+                            ` : `<p>✅ No formatting issues found!</p>`}
                         </div>
                     `;
                 }

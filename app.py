@@ -4,17 +4,18 @@ import subprocess
 import json
 from pathlib import Path
 from utils.text_processing import extract_text, preprocess_text, rank_resume
+from utils.formatting import check_consistency
+from utils.grouping import get_hybrid_grouping_analysis
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploaded_resumes"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-CSHARP_CLI_PATH = Path("ResumeAnalyzerCLI/bin/Release/net9.0/ResumeAnalyzerCLI.dll")  # Fixed path
+CSHARP_CLI_PATH = Path("ResumeAnalyzerCLI/bin/Release/net9.0/ResumeAnalyzerCLI.dll")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def run_csharp(command, file_path):
     try:
-        # Convert Path to string and use absolute path
         cli_path = str(CSHARP_CLI_PATH.absolute())
         file_path = str(file_path.absolute())
         
@@ -26,13 +27,13 @@ def run_csharp(command, file_path):
             text=True,
             timeout=30
         )
-        print("C# Output:", result.stdout)  # Debug logging
+        print("C# Output:", result.stdout)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        print("C# Error:", e.stderr)  # Debug logging
+        print("C# Error:", e.stderr)
         return {"error": f"C# Error: {e.stderr}"}
     except Exception as e:
-        print("General Error:", str(e))  # Debug logging
+        print("General Error:", str(e))
         return {"error": f"Unexpected error: {str(e)}"}
 
 @app.route("/")
@@ -53,36 +54,59 @@ def analyze_resume():
     resume_path = Path(app.config["UPLOAD_FOLDER"]) / resume_file.filename
     resume_file.save(resume_path)
 
-    # C# Analysis
-    csharp_parse = run_csharp("parse", resume_path)
-    csharp_validate = run_csharp("validate", resume_path)
-    csharp_grammar = run_csharp("grammar", resume_path)
+    # Initialize analysis results
+    analysis_results = {
+        "csharp": {},
+        "python": {
+            "formatting": [],
+            "grouping": []
+        }
+    }
 
-    # Python Analysis
-    resume_text = extract_text(resume_path)
-    keyword_result = rank_resume(preprocess_text(resume_text), preprocess_text(job_desc))
+    try:
+        # C# Analysis
+        analysis_results["csharp"]["parse"] = run_csharp("parse", resume_path)
+        analysis_results["csharp"]["validate"] = run_csharp("validate", resume_path)
+        analysis_results["csharp"]["grammar"] = run_csharp("grammar", resume_path)
+
+        # Python Analysis
+        resume_text = extract_text(resume_path)
+        keyword_result = rank_resume(preprocess_text(resume_text), preprocess_text(job_desc))
+        
+        # Formatting and Grouping Analysis
+        analysis_results["python"]["formatting"] = check_consistency(str(resume_path))
+        _, group_messages = get_hybrid_grouping_analysis(str(resume_path))
+        analysis_results["python"]["grouping"] = group_messages
+
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
     # Build response
     response = {
         "score": keyword_result.get("score", 0),
         "missing_keywords": keyword_result.get("missing_keywords", []),
-        "sections": csharp_parse.get("Sections", {}),  # Capital S
-        "formatting_issues": csharp_validate.get("FormattingErrors", []),
-        "grammar_issues": csharp_grammar.get("GrammarIssues", []),
-        "keyword_feedback": keyword_result.get("feedback", []),
+        "sections": analysis_results["csharp"]["parse"].get("Sections", {}),
+        "formatting_feedback": [
+            *analysis_results["csharp"]["validate"].get("FormattingErrors", []),
+            *analysis_results["python"]["formatting"],
+            *analysis_results["python"]["grouping"]
+        ],
+        "grammar_issues": analysis_results["csharp"]["grammar"].get("GrammarIssues", []),
+        "feedback": keyword_result.get("feedback", "No feedback available"),
         "errors": [
             err for err in [
-                csharp_parse.get("Error"),
-                csharp_validate.get("Error"),
-                csharp_grammar.get("Error")
+                analysis_results["csharp"]["parse"].get("Error"),
+                analysis_results["csharp"]["validate"].get("Error"),
+                analysis_results["csharp"]["grammar"].get("Error")
             ] if err
         ]
     }
-    
-    # Add debug info
-    print("C# Parse Result:", csharp_parse)
-    print("Keyword Result:", keyword_result)
 
+    # Debug logging
+    print("C# Parse Result:", analysis_results["csharp"]["parse"])
+    print("Python Formatting:", analysis_results["python"]["formatting"])
+    print("Python Grouping:", analysis_results["python"]["grouping"])
+    print("Keyword Result:", keyword_result)
 
     if any(response["errors"]):
         return jsonify({"error": "Analysis partial failure", "details": response}), 500
