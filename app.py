@@ -1,40 +1,17 @@
+# app.py
 from flask import Flask, request, jsonify, render_template
 import os
-import subprocess
-import json
 from pathlib import Path
 from utils.text_processing import extract_text, preprocess_text, rank_resume
-from utils.formatting import check_consistency
+from utils.formatting import check_consistency, analyze_pdf_formatting
 from utils.grouping import get_hybrid_grouping_analysis
+from utils.grammar import check_grammar
+from utils.parsing import extract_resume_sections
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploaded_resumes"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-CSHARP_CLI_PATH = Path("ResumeAnalyzerCLI/bin/Release/net9.0/ResumeAnalyzerCLI.dll")
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def run_csharp(command, file_path):
-    try:
-        cli_path = str(CSHARP_CLI_PATH.absolute())
-        file_path = str(file_path.absolute())
-        
-        result = subprocess.run(
-            ["dotnet", cli_path, command, file_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=30
-        )
-        print("C# Output:", result.stdout)
-        return json.loads(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("C# Error:", e.stderr)
-        return {"error": f"C# Error: {e.stderr}"}
-    except Exception as e:
-        print("General Error:", str(e))
-        return {"error": f"Unexpected error: {str(e)}"}
 
 @app.route("/")
 def index():
@@ -54,64 +31,41 @@ def analyze_resume():
     resume_path = Path(app.config["UPLOAD_FOLDER"]) / resume_file.filename
     resume_file.save(resume_path)
 
-    # Initialize analysis results
-    analysis_results = {
-        "csharp": {},
-        "python": {
-            "formatting": [],
-            "grouping": []
-        }
-    }
-
     try:
-        # C# Analysis
-        analysis_results["csharp"]["parse"] = run_csharp("parse", resume_path)
-        analysis_results["csharp"]["validate"] = run_csharp("validate", resume_path)
-        analysis_results["csharp"]["grammar"] = run_csharp("grammar", resume_path)
-
-        # Python Analysis
-        resume_text = extract_text(resume_path)
-        keyword_result = rank_resume(preprocess_text(resume_text), preprocess_text(job_desc))
+        # Extract and preprocess text
+        raw_text = extract_text(resume_path)
+        preprocessed_text = preprocess_text(raw_text)
         
-        # Formatting and Grouping Analysis
-        analysis_results["python"]["formatting"] = check_consistency(str(resume_path))
-        _, group_messages = get_hybrid_grouping_analysis(str(resume_path))
-        analysis_results["python"]["grouping"] = group_messages
+        # Core analysis
+        analysis_results = {
+            "sections": extract_resume_sections(raw_text),
+            "formatting": analyze_pdf_formatting(resume_path),
+            "grammar": check_grammar(raw_text),
+            "keyword_analysis": rank_resume(preprocessed_text, preprocess_text(job_desc)),
+            "grouping_analysis": get_hybrid_grouping_analysis(str(resume_path))[1]
+        }
+
+        # Build response
+        return jsonify({
+            "score": analysis_results["keyword_analysis"].get("score", 0),
+            "missing_keywords": analysis_results["keyword_analysis"].get("missing_keywords", []),
+            "sections": analysis_results["sections"],
+            "formatting_feedback": format_formatting_results(analysis_results["formatting"]),
+            "grammar_issues": analysis_results["grammar"],
+            "grouping_issues": analysis_results["grouping_analysis"],
+            "feedback": analysis_results["keyword_analysis"].get("feedback", "No feedback available")
+        })
 
     except Exception as e:
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
-    # Build response
-    response = {
-        "score": keyword_result.get("score", 0),
-        "missing_keywords": keyword_result.get("missing_keywords", []),
-        "sections": analysis_results["csharp"]["parse"].get("Sections", {}),
-        "formatting_feedback": [
-            *analysis_results["csharp"]["validate"].get("FormattingErrors", []),
-            *analysis_results["python"]["formatting"],
-            *analysis_results["python"]["grouping"]
-        ],
-        "grammar_issues": analysis_results["csharp"]["grammar"].get("GrammarIssues", []),
-        "feedback": keyword_result.get("feedback", "No feedback available"),
-        "errors": [
-            err for err in [
-                analysis_results["csharp"]["parse"].get("Error"),
-                analysis_results["csharp"]["validate"].get("Error"),
-                analysis_results["csharp"]["grammar"].get("Error")
-            ] if err
-        ]
-    }
-
-    # Debug logging
-    print("C# Parse Result:", analysis_results["csharp"]["parse"])
-    print("Python Formatting:", analysis_results["python"]["formatting"])
-    print("Python Grouping:", analysis_results["python"]["grouping"])
-    print("Keyword Result:", keyword_result)
-
-    if any(response["errors"]):
-        return jsonify({"error": "Analysis partial failure", "details": response}), 500
-
-    return jsonify(response)
+def format_formatting_results(formatting_data):
+    messages = []
+    if formatting_data.get("unique_font_names", 0) > 3:
+        messages.append(f"Too many fonts ({formatting_data['unique_font_names']}) - Use 2-3 maximum")
+    if formatting_data.get("bullet_percentage", 0) < 30:
+        messages.append("Low bullet point usage - Increase to ≥40% for better readability")
+    return messages
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
