@@ -19,7 +19,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Show loading and reset previous results
         resultsDiv.classList.add("hidden");
         loadingDiv.classList.remove("hidden");
 
@@ -42,32 +41,73 @@ document.addEventListener("DOMContentLoaded", function () {
                     resultsContent.innerHTML = `
                         <h3>Analysis Results</h3>
                         <div class="result-section">
-                            <p><strong>Score:</strong> ${data.score}</p>
-                            <p><strong>Feedback:</strong> ${data.feedback || "No feedback available"}</p>
+                            <p><strong>ATS Compatibility Score:</strong> ${data.score}/100</p>
+                            <p><strong>Overall Feedback:</strong> ${data.feedback || "No feedback available"}</p>
                         </div>
+
+                        <div class="result-section">
+                            <strong>Detected Resume Sections:</strong>
+                            ${Object.keys(data.sections).length > 0 ? `
+                                <ul class="section-list">
+                                    ${Object.keys(data.sections).map(section => `
+                                        <li><span class="section-name">${section}</span> (${data.sections[section].length} items)</li>
+                                    `).join("")}
+                                </ul>
+                            ` : `<p>❌ No sections detected</p>`}
+                        </div>
+
                         <div class="result-section">
                             <strong>Missing Keywords:</strong>
                             ${data.missing_keywords.length > 0 ? `
                                 <ul>
                                     ${data.missing_keywords.map((kw) => `<li>${kw}</li>`).join("")}
                                 </ul>
-                            ` : `<p>✅ No missing keywords!</p>`}
+                            ` : `<p>✅ All important keywords matched!</p>`}
                         </div>
+
                         <div class="result-section">
-                            <strong>Grammar Feedback:</strong>
+                            <strong>Grammar Issues:</strong>
                             ${data.grammar_issues && data.grammar_issues.length > 0 ? `
                                 <ul>
                                     ${data.grammar_issues.map((gi) => `<li>${gi}</li>`).join("")}
                                 </ul>
                             ` : `<p>✅ No grammar issues found!</p>`}
                         </div>
+
                         <div class="result-section">
-                            <strong>Formatting Feedback:</strong>
+                            <strong>Formatting Issues:</strong>
                             ${data.formatting_feedback && data.formatting_feedback.length > 0 ? `
                                 <ul>
                                     ${data.formatting_feedback.map((fb) => `<li>${fb}</li>`).join("")}
                                 </ul>
-                            ` : `<p>✅ No formatting issues found!</p>`}
+                            ` : `<p>✅ Perfect formatting!</p>`}
+                        </div>
+
+                        <div class="result-section">
+                            <strong>Content Organization:</strong>
+                            ${data.grouping_issues && data.grouping_issues.length > 0 ? `
+                                <ul>
+                                    ${data.grouping_issues.map((issue) => `<li>${issue}</li>`).join("")}
+                                </ul>
+                            ` : `<p>✅ Content well-organized!</p>`}
+                        </div>
+
+                        <div class="result-section">
+                            <strong>Writing Enhancements:</strong>
+                            ${data.paraphrased_suggestions && data.paraphrased_suggestions.length > 0 ? `
+                                <div class="suggestions-container">
+                                    ${data.paraphrased_suggestions.map(suggestion => `
+                                        <div class="suggestion-box">
+                                            <div class="original-text">
+                                                <em>Original:</em> ${suggestion.original}
+                                            </div>
+                                            <div class="suggestion-text">
+                                                <em>Improved:</em> ${suggestion.suggestion}
+                                            </div>
+                                        </div>
+                                    `).join("")}
+                                </div>
+                            ` : `<p>✅ No writing improvements needed!</p>`}
                         </div>
                     `;
                 }

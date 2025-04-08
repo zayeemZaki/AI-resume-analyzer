@@ -1,21 +1,34 @@
 # app.py
 from flask import Flask, request, jsonify, render_template
 import os
+import re
 from pathlib import Path
 from utils.text_processing import extract_text, preprocess_text, rank_resume
 from utils.formatting import check_consistency, analyze_pdf_formatting
 from utils.grouping import get_hybrid_grouping_analysis
 from utils.grammar import check_grammar
 from utils.parsing import extract_resume_sections
+from utils.paraphrasing import always_paraphrase_description
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploaded_resumes"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Regex patterns for identifying experience bullets
+ACCOMPLISHMENT_KEYWORDS = r"\b(developed|implemented|created|improved|achieved|designed|optimized)\b"
+RESULT_KEYWORDS = r"\b(\d+%|\d+\s*(?:points|percent)|increased|decreased|improved|resulted|reduced)\b"
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
+def is_experience_bullet(text):
+    """Identify experience bullet points using keyword matching"""
+    text_lower = text.lower()
+    return (re.search(ACCOMPLISHMENT_KEYWORDS, text_lower) 
+            and re.search(RESULT_KEYWORDS, text_lower)
+            and len(text.split()) >= 5)
 
 @app.route("/analyze_resume", methods=["POST"])
 def analyze_resume():
@@ -37,13 +50,34 @@ def analyze_resume():
         preprocessed_text = preprocess_text(raw_text)
         
         # Core analysis
+        sections = extract_resume_sections(raw_text)
         analysis_results = {
-            "sections": extract_resume_sections(raw_text),
+            "sections": sections,
             "formatting": analyze_pdf_formatting(resume_path),
             "grammar": check_grammar(raw_text),
             "keyword_analysis": rank_resume(preprocessed_text, preprocess_text(job_desc)),
             "grouping_analysis": get_hybrid_grouping_analysis(str(resume_path))[1]
         }
+
+        # Generate paraphrasing suggestions for experience bullets
+        paraphrased_suggestions = []
+        try:
+            # Extract all bullet points from all sections
+            all_bullets = [bullet for section in sections.values() for bullet in section]
+            
+            # Process first 5 experience-related bullets to avoid timeout
+            for bullet in all_bullets[:5]:
+                if is_experience_bullet(bullet):
+                    try:
+                        paraphrased = always_paraphrase_description(bullet)
+                        paraphrased_suggestions.append({
+                            "original": bullet,
+                            "suggestion": paraphrased
+                        })
+                    except Exception as e:
+                        print(f"Paraphrasing failed for bullet: {bullet}\nError: {str(e)}")
+        except Exception as e:
+            print(f"Paraphrasing process failed: {str(e)}")
 
         # Build response
         return jsonify({
@@ -53,7 +87,8 @@ def analyze_resume():
             "formatting_feedback": format_formatting_results(analysis_results["formatting"]),
             "grammar_issues": analysis_results["grammar"],
             "grouping_issues": analysis_results["grouping_analysis"],
-            "feedback": analysis_results["keyword_analysis"].get("feedback", "No feedback available")
+            "feedback": analysis_results["keyword_analysis"].get("feedback", "No feedback available"),
+            "paraphrased_suggestions": paraphrased_suggestions
         })
 
     except Exception as e:
@@ -68,4 +103,5 @@ def format_formatting_results(formatting_data):
     return messages
 
 if __name__ == "__main__":
+    print("Loading ML models...")
     app.run(host="0.0.0.0", port=5001, debug=True)
