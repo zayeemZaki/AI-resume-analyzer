@@ -2,7 +2,10 @@ import re
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 # Load the tokenizer and model (this may take a moment on first run)
-tokenizer = T5Tokenizer.from_pretrained("Vamsi/T5_Paraphrase_Paws")
+tokenizer = T5Tokenizer.from_pretrained(
+    "Vamsi/T5_Paraphrase_Paws",
+    legacy=False  # Explicitly disable legacy mode
+)
 model = T5ForConditionalGeneration.from_pretrained("Vamsi/T5_Paraphrase_Paws")
 
 # Define regex patterns for checking description structure (if needed)
