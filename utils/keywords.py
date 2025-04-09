@@ -5,6 +5,11 @@ from spacy.matcher import PhraseMatcher
 from skillNer.general_params import SKILL_DB
 from skillNer.skill_extractor_class import SkillExtractor
 from .models import bert_model  # Ensure bert_model is properly loaded
+import nltk
+from nltk.corpus import stopwords
+
+# Load nltk stopwords
+nltk.download('stopwords')
 
 # Load spaCy models
 nlp_skillner = spacy.load("en_core_web_lg")
@@ -12,6 +17,16 @@ nlp_nouns = spacy.load("en_core_web_sm")
 
 # Initialize SkillNER
 skill_extractor = SkillExtractor(nlp_skillner, SKILL_DB, PhraseMatcher)
+
+# Function to load custom generic words from a file
+def load_generic_words(filepath="static/generic_words.txt"):
+    with open(filepath, "r") as file:
+        custom_words = {line.strip().lower() for line in file if line.strip()}
+    nltk_words = set(stopwords.words('english'))
+    return custom_words.union(nltk_words)
+
+# Load generic words once (efficient)
+GENERIC_WORDS = load_generic_words()
 
 def filter_generic_keywords(keywords, generic_words, threshold=0.6):
     filtered_keywords = []
@@ -34,7 +49,7 @@ def extract_skills_skillner(text):
 
 def extract_nouns_spacy(text):
     doc = nlp_nouns(text.lower())
-    nouns = {token.text for token in doc if token.pos_ in ("NOUN", "PROPN")}
+    nouns = {token.text for token in doc if token.pos_ in ("NOUN", "PROPN") and token.pos_ != "VERB"}
     return nouns
 
 def extract_resume_keywords(text, top_n=20, must_include=None):
@@ -44,16 +59,10 @@ def extract_resume_keywords(text, top_n=20, must_include=None):
     skillner_skills = extract_skills_skillner(text)
     spacy_nouns = extract_nouns_spacy(text)
 
-    combined_keywords = skillner_skills.union(spacy_nouns).union(must_include)
+    combined_keywords = skillner_skills.union(spacy_nouns, must_include)
 
-    generic_words = {
-        "experience", "job", "skill", "data", "system", "project", "resume",
-        "candidate", "responsibilities", "qualifications", "knowledge",
-        "ability", "team", "environment", "attitude", "result", "ensure",
-        "base", "time"
-    }
-
-    filtered_keywords = filter_generic_keywords(combined_keywords, generic_words)
+    # Use the loaded GENERIC_WORDS set
+    filtered_keywords = filter_generic_keywords(combined_keywords, GENERIC_WORDS)
 
     keyword_freq = Counter({kw: text.lower().count(kw) for kw in filtered_keywords})
     top_keywords = [word for word, _ in keyword_freq.most_common(top_n)]
@@ -66,14 +75,8 @@ def extract_job_keywords(text, top_n=20):
 
     combined_keywords = skillner_skills.intersection(spacy_nouns)
 
-    generic_words = {
-        "experience", "job", "skill", "data", "system", "project", "resume",
-        "candidate", "responsibilities", "qualifications", "knowledge",
-        "ability", "team", "environment", "attitude", "result", "ensure",
-        "base", "time"
-    }
-
-    filtered_keywords = filter_generic_keywords(combined_keywords, generic_words)
+    # Use the loaded GENERIC_WORDS set
+    filtered_keywords = filter_generic_keywords(combined_keywords, GENERIC_WORDS)
 
     keyword_freq = Counter({kw: text.lower().count(kw) for kw in filtered_keywords})
     top_keywords = [word for word, _ in keyword_freq.most_common(top_n)]
