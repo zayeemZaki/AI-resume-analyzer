@@ -718,3 +718,5 @@ follow
 followed
 follow-through
 guidance
+instrument
+abstraction

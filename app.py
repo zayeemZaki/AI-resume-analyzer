@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, request, jsonify, render_template
 import os
 import re
@@ -15,7 +14,6 @@ UPLOAD_FOLDER = "uploaded_resumes"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Regex patterns for identifying experience bullets
 ACCOMPLISHMENT_KEYWORDS = r"\b(developed|implemented|created|improved|achieved|designed|optimized)\b"
 RESULT_KEYWORDS = r"\b(\d+%|\d+\s*(?:points|percent)|increased|decreased|improved|resulted|reduced)\b"
 
@@ -24,7 +22,6 @@ def index():
     return render_template("index.html")
 
 def is_experience_bullet(text):
-    """Identify experience bullet points using keyword matching"""
     text_lower = text.lower()
     return (re.search(ACCOMPLISHMENT_KEYWORDS, text_lower) 
             and re.search(RESULT_KEYWORDS, text_lower)
@@ -45,27 +42,57 @@ def analyze_resume():
     resume_file.save(resume_path)
 
     try:
-        # Extract and preprocess text
+        # Step 1: Extract text with line breaks preserved
         raw_text = extract_text(resume_path)
-        preprocessed_text = preprocess_text(raw_text)
+
+        # Step 2: Group bullet lines into paragraphs for grammar context
+        grouped_lines = []
+        current_para = []
+
+        for line in raw_text.splitlines():
+            stripped = line.strip()
+
+            # Bullet points become separate paragraphs
+            if stripped.startswith("•") or stripped.startswith("-"):
+                if current_para:
+                    grouped_lines.append(" ".join(current_para))
+                    current_para = []
+                grouped_lines.append(stripped)  # standalone paragraph
+            elif len(stripped) == 0 or stripped.isupper() or len(stripped.split()) < 3:
+                if current_para:
+                    grouped_lines.append(" ".join(current_para))
+                    current_para = []
+            else:
+                current_para.append(stripped)
+
+        if current_para:
+            grouped_lines.append(" ".join(current_para))
+
+        grouped_text = "\n\n".join(grouped_lines)
+
+        preprocessed_text = preprocess_text(grouped_text)
         
-        # Core analysis
+
+        # Export grouped_text to a .txt file for debugging
+        debug_path = Path(app.config["UPLOAD_FOLDER"]) / "grouped_output_debug.txt"
+        with open(debug_path, "w", encoding="utf-8") as f:
+            f.write(grouped_text)
+        print(f"[DEBUG] Grouped text written to {debug_path}")
+
+
+        # Step 3: Analyze
         sections = extract_resume_sections(raw_text)
         analysis_results = {
             "sections": sections,
             "formatting": analyze_pdf_formatting(resume_path),
-            "grammar": check_grammar(raw_text),
+            "grammar": check_grammar(grouped_text),
             "keyword_analysis": rank_resume(preprocessed_text, preprocess_text(job_desc)),
             "grouping_analysis": get_hybrid_grouping_analysis(str(resume_path))[1]
         }
 
-        # Generate paraphrasing suggestions for experience bullets
         paraphrased_suggestions = []
         try:
-            # Extract all bullet points from all sections
             all_bullets = [bullet for section in sections.values() for bullet in section]
-            
-            # Process first 5 experience-related bullets to avoid timeout
             for bullet in all_bullets[:5]:
                 if is_experience_bullet(bullet):
                     try:
@@ -79,7 +106,8 @@ def analyze_resume():
         except Exception as e:
             print(f"Paraphrasing process failed: {str(e)}")
 
-        # Build response
+        # print("Printing Grammmamrmmagnagiaehgiuaehpgae", analysis_results["grammar"])
+
         return jsonify({
             "score": analysis_results["keyword_analysis"].get("score", 0),
             "missing_keywords": analysis_results["keyword_analysis"].get("missing_keywords", []),
