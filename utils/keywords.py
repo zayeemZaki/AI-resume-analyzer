@@ -4,14 +4,16 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from skillNer.general_params import SKILL_DB
 from skillNer.skill_extractor_class import SkillExtractor
-from .models import bert_model  # Make sure this points to your actual BERT model instance
+from .models import bert_model  # Ensure bert_model is properly loaded
 
-# Initialize spaCy and SkillNER
-nlp = spacy.load("en_core_web_sm")
-skill_extractor = SkillExtractor(nlp, SKILL_DB, PhraseMatcher)
+# Load spaCy models
+nlp_skillner = spacy.load("en_core_web_lg")
+nlp_nouns = spacy.load("en_core_web_sm")
+
+# Initialize SkillNER
+skill_extractor = SkillExtractor(nlp_skillner, SKILL_DB, PhraseMatcher)
 
 def filter_generic_keywords(keywords, generic_words, threshold=0.6):
-    """Filter out generic keywords using semantic similarity"""
     filtered_keywords = []
     generic_embeddings = bert_model.encode(list(generic_words))
     
@@ -22,38 +24,63 @@ def filter_generic_keywords(keywords, generic_words, threshold=0.6):
             filtered_keywords.append(word)
     return filtered_keywords
 
-def extract_keywords(text, top_n=15, must_include=None):
-    """Extract keywords using SkillNER with enhanced filtering"""
+def extract_skills_skillner(text):
+    annotations = skill_extractor.annotate(text)
+    skills = {
+        skill['doc_node_value'].lower()
+        for skill in annotations['results']['full_matches'] + annotations['results']['ngram_scored']
+    }
+    return skills
+
+def extract_nouns_spacy(text):
+    doc = nlp_nouns(text.lower())
+    nouns = {token.text for token in doc if token.pos_ in ("NOUN", "PROPN")}
+    return nouns
+
+def extract_resume_keywords(text, top_n=20, must_include=None):
     if must_include is None:
         must_include = {"flask", "python", "nlp", "developer"}
 
-    doc = nlp(text.lower())
+    skillner_skills = extract_skills_skillner(text)
+    spacy_nouns = extract_nouns_spacy(text)
 
-    # Extract skills using SkillNER
-    annotations = skill_extractor.annotate(text)
-    
-    skill_keywords = [
-        skill['doc_node_value'].lower()
-        for skill in annotations['results']['full_matches'] + annotations['results']['ngram_scored']
-    ]
-    
-    # Add must-include keywords if present in text
-    skill_keywords += [word for word in must_include if word in text.lower()]
-    
-    # Filter generic terms
+    combined_keywords = skillner_skills.union(spacy_nouns).union(must_include)
+
     generic_words = {
-        "experience", "job", "skill", "data",
-        "system", "project", "resume", "candidate"
+        "experience", "job", "skill", "data", "system", "project", "resume",
+        "candidate", "responsibilities", "qualifications", "knowledge",
+        "ability", "team", "environment", "attitude", "result", "ensure",
+        "base", "time"
     }
-    
-    top_candidates = [word for word, _ in Counter(skill_keywords).most_common(top_n * 2)]
-    
-    filtered = filter_generic_keywords(top_candidates, generic_words)
 
-    return list(set(filtered[:top_n]))  # Deduplicate and limit to top_n
+    filtered_keywords = filter_generic_keywords(combined_keywords, generic_words)
+
+    keyword_freq = Counter({kw: text.lower().count(kw) for kw in filtered_keywords})
+    top_keywords = [word for word, _ in keyword_freq.most_common(top_n)]
+
+    return set(top_keywords)
+
+def extract_job_keywords(text, top_n=20):
+    skillner_skills = extract_skills_skillner(text)
+    spacy_nouns = extract_nouns_spacy(text)
+
+    combined_keywords = skillner_skills.intersection(spacy_nouns)
+
+    generic_words = {
+        "experience", "job", "skill", "data", "system", "project", "resume",
+        "candidate", "responsibilities", "qualifications", "knowledge",
+        "ability", "team", "environment", "attitude", "result", "ensure",
+        "base", "time"
+    }
+
+    filtered_keywords = filter_generic_keywords(combined_keywords, generic_words)
+
+    keyword_freq = Counter({kw: text.lower().count(kw) for kw in filtered_keywords})
+    top_keywords = [word for word, _ in keyword_freq.most_common(top_n)]
+
+    return set(top_keywords)
 
 def analyze_keywords(resume_text, job_text):
-    """Compare resume and job description keywords"""
-    job_keywords = set(extract_keywords(job_text))
-    resume_keywords = set(extract_keywords(resume_text))
+    resume_keywords = extract_resume_keywords(resume_text)
+    job_keywords = extract_job_keywords(job_text)
     return list(job_keywords - resume_keywords)
