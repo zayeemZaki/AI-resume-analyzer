@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Please upload a resume file.");
             return;
         }
-
         if (jobDescription.value.trim() === "") {
             alert("Please enter a job description.");
             return;
@@ -30,8 +29,8 @@ document.addEventListener("DOMContentLoaded", function () {
             method: "POST",
             body: formData,
         })
-        .then((response) => response.json())
-        .then((data) => {
+        .then(response => response.json())
+        .then(data => {
             loadingDiv.classList.add("hidden");
             resultsDiv.classList.remove("hidden");
 
@@ -42,55 +41,44 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const grammar = data.grammar_issues || {};
-            const styleIssues = grammar.style_issues || [];
-            const grammarErrors = grammar.lines_with_grammar_errors || [];
-
-            const hasStyleIssues = styleIssues.length > 0;
-            const hasGrammarErrors = grammarErrors.length > 0;
-
+            const styleIssues = data.style_issues || [];
+            const lineAnalysis = data.line_analysis || [];
+            const metrics = data.metrics || {};
             console.log("[DEBUG] Style issues:", styleIssues);
-            console.log("[DEBUG] Grammar errors:", grammarErrors);
+            console.log("[DEBUG] Line analysis:", lineAnalysis);
+            console.log("[DEBUG] Metrics:", metrics);
 
-            // ✅ Safely build grammar HTML
-            let grammarHtml = "";
-
-            if (hasStyleIssues || hasGrammarErrors) {
-                grammarHtml += "<strong>Grammar Issues:</strong>";
-
-                if (hasStyleIssues) {
-                    grammarHtml += `
+            // ✅ Build bullet analysis HTML
+            let bulletAnalysisHtml = "";
+            if (styleIssues.length > 0 || lineAnalysis.length > 0) {
+                bulletAnalysisHtml += "<strong>Bullet-by-Bullet Analysis:</strong>";
+                if (styleIssues.length > 0) {
+                    bulletAnalysisHtml += `
                         <h4>Style Issues:</h4>
                         <ul>
-                            ${styleIssues.map(si => `<li>⚠️ ${si}</li>`).join("")}
+                            ${styleIssues.map(issue => `<li>⚠️ ${issue}</li>`).join("")}
                         </ul>
                     `;
                 }
-
-                if (hasGrammarErrors) {
-                    grammarHtml += `
-                        <h4>Grammar Errors by Paragraph:</h4>
-                        <ul>
-                            ${grammarErrors.map(para => `
-                                <li>
-                                    <strong>Paragraph ${para.line_number}:</strong><br/>
-                                    <ul>
-                                        ${para.errors.map(err => `
-                                            <li style="margin-bottom: 1rem;">
-                                                <pre><code>${err.context}</code></pre>
-                                                <em>${err.message}</em><br/>
-                                                <strong>Suggestion:</strong> ${err.suggestions.join(", ") || "None"}
-                                            </li>
-                                        `).join("")}
+                if (lineAnalysis.length > 0) {
+                    bulletAnalysisHtml += `
+                        <div class="suggestions-container">
+                            ${lineAnalysis.map(entry => `
+                                <div class="suggestion-box">
+                                    <div class="original-text"><em>Original:</em> ${entry.text}</div>
+                                    ${entry.grammar_errors && entry.grammar_errors.length > 0 ? `
+                                    <ul class="grammar-issues-list">
+                                        ${entry.grammar_errors.map(err => `<li>⚠️ ${err}</li>`).join("")}
                                     </ul>
-
-                                </li>
+                                    ` : `<p class="no-issues">✅ No grammar issues found.</p>`}
+                                    <div class="suggestion-text"><em>Improved:</em> ${entry.paraphrased}</div>
+                                </div>
                             `).join("")}
-                        </ul>
+                        </div>
                     `;
                 }
             } else {
-                grammarHtml = `<p>✅ No grammar issues found!</p>`;
+                bulletAnalysisHtml = `<p>✅ No bullet analysis available.</p>`;
             }
 
             // 🧠 Final HTML
@@ -116,20 +104,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     <strong>Missing Keywords:</strong>
                     ${data.missing_keywords.length > 0 ? `
                         <ul>
-                            ${data.missing_keywords.map((kw) => `<li>${kw}</li>`).join("")}
+                            ${data.missing_keywords.map(kw => `<li>${kw}</li>`).join("")}
                         </ul>
                     ` : `<p>✅ All important keywords matched!</p>`}
                 </div>
 
                 <div class="result-section">
-                    ${grammarHtml}
+                    ${bulletAnalysisHtml}
                 </div>
 
                 <div class="result-section">
                     <strong>Formatting Issues:</strong>
                     ${data.formatting_feedback && data.formatting_feedback.length > 0 ? `
                         <ul>
-                            ${data.formatting_feedback.map((fb) => `<li>${fb}</li>`).join("")}
+                            ${data.formatting_feedback.map(fb => `<li>${fb}</li>`).join("")}
                         </ul>
                     ` : `<p>✅ Perfect formatting!</p>`}
                 </div>
@@ -138,31 +126,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     <strong>Content Organization:</strong>
                     ${data.grouping_issues && data.grouping_issues.length > 0 ? `
                         <ul>
-                            ${data.grouping_issues.map((issue) => `<li>${issue}</li>`).join("")}
+                            ${data.grouping_issues.map(issue => `<li>${issue}</li>`).join("")}
                         </ul>
                     ` : `<p>✅ Content well-organized!</p>`}
                 </div>
-
-                <div class="result-section">
-                    <strong>Writing Enhancements:</strong>
-                    ${data.paraphrased_suggestions && data.paraphrased_suggestions.length > 0 ? `
-                        <div class="suggestions-container">
-                            ${data.paraphrased_suggestions.map(suggestion => `
-                                <div class="suggestion-box">
-                                    <div class="original-text">
-                                        <em>Original:</em> ${suggestion.original}
-                                    </div>
-                                    <div class="suggestion-text">
-                                        <em>Improved:</em> ${suggestion.suggestion}
-                                    </div>
-                                </div>
-                            `).join("")}
-                        </div>
-                    ` : `<p>✅ No writing improvements needed!</p>`}
-                </div>
             `;
         })
-        .catch((err) => {
+        .catch(err => {
             loadingDiv.classList.add("hidden");
             resultsDiv.classList.remove("hidden");
             resultsContent.innerHTML = `<p class="error"><strong>Error:</strong> Something went wrong. Please try again.</p>`;
