@@ -50,39 +50,44 @@ def analyze_resume():
         current_para = []
 
         lines = raw_text.splitlines()
+        grouped_lines = []
+        current_para = []
 
         for line in lines:
             stripped = line.strip()
-            
-            # Skip empty lines
             if not stripped:
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 continue
 
-            # Detect resume section headers (like EDUCATION, EXPERIENCE)
-            if stripped.isupper() and len(stripped.split()) <= 4:
+            if stripped.isupper() and len(stripped.split()) <= 5:
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 grouped_lines.append(stripped)
                 continue
 
-            # If line looks like contact info, break it into its own
-            if "@" in stripped or "|" in stripped or stripped.lower().startswith("zayeem"):
+            if "@" in stripped or "|" in stripped or "http" in stripped or stripped.lower().startswith("zayeem"):
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 grouped_lines.append(stripped)
                 continue
 
-            current_para.append(stripped)
+            if stripped.startswith(("•", "-", "*")):
+                if current_para:
+                    grouped_lines.append(" ".join(current_para))
+                    current_para = []
+                current_para.append(stripped)
+            else:
+                current_para.append(stripped)
 
         if current_para:
             grouped_lines.append(" ".join(current_para))
 
         grouped_text = "\n\n".join(grouped_lines)
+
 
 
 

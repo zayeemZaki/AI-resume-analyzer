@@ -9,31 +9,46 @@ nlp = spacy.load("en_core_web_sm")
 
 def extract_text(file_path):
     """
-    Extracts and formats text from PDF/DOCX resumes.
-    Enhances grouping by separating headers, links, and sections.
+    Extracts and formats text from PDF/DOCX resumes with enhanced grouping.
     """
     path = Path(file_path)
     suffix = path.suffix.lower()
 
+    def is_section(line):
+        return line.isupper() and len(line.split()) <= 5 and not line.startswith("•")
+
+    def is_contact(line):
+        return "@" in line or "|" in line or "http" in line
+
+    def is_bullet(line):
+        return line.strip().startswith(("•", "-", "*"))
+
+    text = ""
     if suffix == '.pdf':
-        text = ""
         with pdfplumber.open(str(path)) as pdf:
             for page in pdf.pages:
-                lines = page.extract_text().splitlines()
-                for line in lines:
-                    clean = line.strip()
-                    if clean.isupper() and len(clean.split()) <= 4:
-                        text += f"\n\n{clean}\n"
-                    elif "@" in clean or "|" in clean or "http" in clean:
-                        text += f"{clean}\n"
+                raw_lines = page.extract_text().splitlines()
+                for line in raw_lines:
+                    line = line.strip()
+                    if not line:
+                        text += "\n"
+                        continue
+
+                    if is_section(line):
+                        text += f"\n\n{line}\n"
+                    elif is_contact(line):
+                        text += f"{line}\n"
+                    elif is_bullet(line):
+                        text += f"\n{line}"
                     else:
-                        text += f"{clean}\n"
+                        text += f" {line}"
         return text.strip()
 
     elif suffix == '.docx':
-        return docx2txt.process(str(path))
+        return docx2txt.process(str(path)).strip()
 
     return None
+
 
 def preprocess_text(text):
     """
