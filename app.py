@@ -49,26 +49,42 @@ def analyze_resume():
         grouped_lines = []
         current_para = []
 
-        for line in raw_text.splitlines():
-            stripped = line.strip()
+        lines = raw_text.splitlines()
 
-            # Bullet points become separate paragraphs
-            if stripped.startswith("•") or stripped.startswith("-"):
+        for line in lines:
+            stripped = line.strip()
+            
+            # Skip empty lines
+            if not stripped:
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
-                grouped_lines.append(stripped)  # standalone paragraph
-            elif len(stripped) == 0 or stripped.isupper() or len(stripped.split()) < 3:
+                continue
+
+            # Detect resume section headers (like EDUCATION, EXPERIENCE)
+            if stripped.isupper() and len(stripped.split()) <= 4:
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
-            else:
-                current_para.append(stripped)
+                grouped_lines.append(stripped)
+                continue
+
+            # If line looks like contact info, break it into its own
+            if "@" in stripped or "|" in stripped or stripped.lower().startswith("zayeem"):
+                if current_para:
+                    grouped_lines.append(" ".join(current_para))
+                    current_para = []
+                grouped_lines.append(stripped)
+                continue
+
+            current_para.append(stripped)
 
         if current_para:
             grouped_lines.append(" ".join(current_para))
 
         grouped_text = "\n\n".join(grouped_lines)
+
+
 
         preprocessed_text = preprocess_text(grouped_text)
         
