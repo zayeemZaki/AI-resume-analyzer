@@ -53,16 +53,18 @@ def check_grammar(text):
             errors = []
             for match in matches:
                 error_text = para[match.offset : match.offset + match.errorLength]
-                # print(f"  ✏️ {match.message} | Error: '{error_text}' | Suggestions: {match.replacements}")
+                context_snippet = para[max(0, match.offset - 40): match.offset + match.errorLength + 60]  # Safe snippet
 
                 errors.append({
                     "error_text": error_text,
                     "message": match.message,
-                    "suggestions": match.replacements
+                    "suggestions": match.replacements,
+                    "context": context_snippet.strip()
                 })
+
             lines_with_grammar_errors.append({
                 "line_number": idx,
-                "text": para,
+                "text": "", 
                 "errors": errors
             })
 

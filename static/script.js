@@ -74,13 +74,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${grammarErrors.map(para => `
                                 <li>
                                     <strong>Paragraph ${para.line_number}:</strong><br/>
-                                    <pre>${para.text}</pre>
-                                    ${para.errors.map(err => `
-                                        <div style="margin-left: 10px;">
-                                            <em>${err.message}</em><br/>
-                                            <strong>Suggestion:</strong> ${err.suggestions.join(", ") || "None"}
-                                        </div>
-                                    `).join("")}
+                                    <ul>
+                                        ${para.errors.map(err => `
+                                            <li style="margin-bottom: 1rem;">
+                                                <pre><code>${err.context}</code></pre>
+                                                <em>${err.message}</em><br/>
+                                                <strong>Suggestion:</strong> ${err.suggestions.join(", ") || "None"}
+                                            </li>
+                                        `).join("")}
+                                    </ul>
+
                                 </li>
                             `).join("")}
                         </ul>
