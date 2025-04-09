@@ -22,17 +22,13 @@ def is_bullet_point(line):
     return line.strip().startswith(("•", "-", "*"))
 
 def extract_text(file_path):
-    """
-    Extracts only bullet point lines from PDF/DOCX resumes.
-    Ignores lines that contain dates or are not bullets.
-    """
     path = Path(file_path)
     suffix = path.suffix.lower()
-
     bullet_lines = []
 
     if suffix == '.pdf':
         with pdfplumber.open(str(path)) as pdf:
+            current_bullet = ""
             for page in pdf.pages:
                 lines = page.extract_text().splitlines()
                 for line in lines:
@@ -40,18 +36,14 @@ def extract_text(file_path):
                     if not clean or contains_date_word(clean):
                         continue
                     if is_bullet_point(clean):
-                        bullet_lines.append(clean)
+                        if current_bullet:
+                            bullet_lines.append(current_bullet.strip())
+                        current_bullet = clean  # start new bullet
+                    else:
+                        current_bullet += " " + clean  # continuation
+            if current_bullet:
+                bullet_lines.append(current_bullet.strip())
         return "\n".join(bullet_lines).strip()
-
-    elif suffix == '.docx':
-        raw_text = docx2txt.process(str(path))
-        bullet_lines = []
-        for line in raw_text.splitlines():
-            if line.strip() and is_bullet_point(line) and not contains_date_word(line):
-                bullet_lines.append(line.strip())
-        return "\n".join(bullet_lines).strip()
-
-    return None
 
 def preprocess_text(text):
     """
