@@ -33,8 +33,17 @@ def check_grammar(text):
     lines_with_grammar_errors = []
     paragraphs = text.split("\n\n")
 
+    # Skip first 3-4 lines (contact info or intro)
+    paragraphs_to_check = paragraphs[3:] if len(paragraphs) > 4 else paragraphs
+
     for idx, para in enumerate(paragraphs, start=1):
+        # ⛔ Skip the first 3 paragraphs
+        if idx <= 3:
+            continue
+
         matches = tool.check(para)
+    
+
         
         # print(f"\n[DEBUG] Paragraph {idx}:")
         # print(para)

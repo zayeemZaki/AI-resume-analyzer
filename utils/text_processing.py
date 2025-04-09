@@ -9,17 +9,30 @@ nlp = spacy.load("en_core_web_sm")
 
 def extract_text(file_path):
     """
-    Extracts text from a resume file (PDF or DOCX) using Path objects.
-    Preserves line breaks for better grammar/context analysis.
+    Extracts and formats text from PDF/DOCX resumes.
+    Enhances grouping by separating headers, links, and sections.
     """
     path = Path(file_path)
     suffix = path.suffix.lower()
-    
+
     if suffix == '.pdf':
+        text = ""
         with pdfplumber.open(str(path)) as pdf:
-            return '\n'.join([page.extract_text() for page in pdf.pages if page.extract_text()])
+            for page in pdf.pages:
+                lines = page.extract_text().splitlines()
+                for line in lines:
+                    clean = line.strip()
+                    if clean.isupper() and len(clean.split()) <= 4:
+                        text += f"\n\n{clean}\n"
+                    elif "@" in clean or "|" in clean or "http" in clean:
+                        text += f"{clean}\n"
+                    else:
+                        text += f"{clean}\n"
+        return text.strip()
+
     elif suffix == '.docx':
-        return docx2txt.process(str(path))  # DOCX already has line breaks
+        return docx2txt.process(str(path))
+
     return None
 
 def preprocess_text(text):
