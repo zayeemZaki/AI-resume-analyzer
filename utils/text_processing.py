@@ -18,39 +18,38 @@ MONTH_KEYWORDS = {
 def contains_date_word(line):
     return any(month in line.lower() for month in MONTH_KEYWORDS)
 
+def is_bullet_point(line):
+    return line.strip().startswith(("•", "-", "*"))
+
 def extract_text(file_path):
     """
-    Extracts and formats text from PDF/DOCX resumes.
-    Enhances grouping by separating headers, links, and sections.
-    Ignores lines that contain month/date references.
+    Extracts only bullet point lines from PDF/DOCX resumes.
+    Ignores lines that contain dates or are not bullets.
     """
     path = Path(file_path)
     suffix = path.suffix.lower()
 
+    bullet_lines = []
+
     if suffix == '.pdf':
-        text = ""
         with pdfplumber.open(str(path)) as pdf:
             for page in pdf.pages:
                 lines = page.extract_text().splitlines()
                 for line in lines:
                     clean = line.strip()
                     if not clean or contains_date_word(clean):
-                        continue  # Skip empty lines and date lines
-                    if clean.isupper() and len(clean.split()) <= 4:
-                        text += f"\n\n{clean}\n"
-                    elif "@" in clean or "|" in clean or "http" in clean:
-                        text += f"{clean}\n"
-                    else:
-                        text += f"{clean}\n"
-        return text.strip()
+                        continue
+                    if is_bullet_point(clean):
+                        bullet_lines.append(clean)
+        return "\n".join(bullet_lines).strip()
 
     elif suffix == '.docx':
         raw_text = docx2txt.process(str(path))
-        cleaned_lines = []
+        bullet_lines = []
         for line in raw_text.splitlines():
-            if line.strip() and not contains_date_word(line):
-                cleaned_lines.append(line.strip())
-        return "\n".join(cleaned_lines).strip()
+            if line.strip() and is_bullet_point(line) and not contains_date_word(line):
+                bullet_lines.append(line.strip())
+        return "\n".join(bullet_lines).strip()
 
     return None
 

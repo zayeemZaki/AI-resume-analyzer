@@ -5,9 +5,8 @@ from pathlib import Path
 from utils.text_processing import extract_text, preprocess_text, rank_resume
 from utils.formatting import check_consistency, analyze_pdf_formatting
 from utils.grouping import get_hybrid_grouping_analysis
-from utils.grammar import check_grammar
 from utils.parsing import extract_resume_sections
-from utils.paraphrasing import always_paraphrase_description
+from utils.enhanced_grammar_and_paraphrasing import check_grammar_and_strength
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploaded_resumes"
@@ -24,17 +23,17 @@ def index():
 def is_experience_bullet(text):
     text_lower = text.lower()
     return (re.search(ACCOMPLISHMENT_KEYWORDS, text_lower) 
-            and re.search(RESULT_KEYWORDS, text_lower)
+            and re.search(RESULT_KEYWORDS, text_lower) 
             and len(text.split()) >= 5)
 
 @app.route("/analyze_resume", methods=["POST"])
 def analyze_resume():
     if "resume" not in request.files:
         return jsonify({"error": "No resume uploaded"}), 400
-    
+
     resume_file = request.files["resume"]
     job_desc = request.form.get("job_description", "")
-    
+
     if not job_desc:
         return jsonify({"error": "Job description required"}), 400
 
@@ -48,98 +47,76 @@ def analyze_resume():
         # Step 2: Group bullet lines into paragraphs for grammar context
         grouped_lines = []
         current_para = []
-
-        lines = raw_text.splitlines()
-        grouped_lines = []
-        current_para = []
-
-        for line in lines:
+        for line in raw_text.splitlines():
             stripped = line.strip()
-            if not stripped:
+            if not stripped:  # blank line -> end current paragraph
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 continue
-
-            if stripped.isupper() and len(stripped.split()) <= 5:
-                if current_para:
-                    grouped_lines.append(" ".join(current_para))
-                    current_para = []
-                grouped_lines.append(stripped)
-                continue
-
-            if "@" in stripped or "|" in stripped or "http" in stripped or stripped.lower().startswith("zayeem"):
+            if stripped.isupper() and len(stripped.split()) <= 5:  # section header
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 grouped_lines.append(stripped)
                 continue
-
-            if stripped.startswith(("•", "-", "*")):
+            if ("@" in stripped or "|" in stripped or "http" in stripped 
+                    or stripped.lower().startswith("zayeem")):  # contact info or name
+                if current_para:
+                    grouped_lines.append(" ".join(current_para))
+                    current_para = []
+                grouped_lines.append(stripped)
+                continue
+            if stripped.startswith(("•", "-", "*")):  # start of a bullet point
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
                 current_para.append(stripped)
             else:
                 current_para.append(stripped)
-
         if current_para:
             grouped_lines.append(" ".join(current_para))
 
         grouped_text = "\n\n".join(grouped_lines)
-
-
-
-
         preprocessed_text = preprocess_text(grouped_text)
-        
 
-        # Export grouped_text to a .txt file for debugging
+        # Export grouped_text to a debug file (optional)
         debug_path = Path(app.config["UPLOAD_FOLDER"]) / "grouped_output_debug.txt"
         with open(debug_path, "w", encoding="utf-8") as f:
             f.write(grouped_text)
         print(f"[DEBUG] Grouped text written to {debug_path}")
 
-
-        # Step 3: Analyze
+        # Step 3: Analyze various aspects
         sections = extract_resume_sections(raw_text)
-        analysis_results = {
-            "sections": sections,
-            "formatting": analyze_pdf_formatting(resume_path),
-            "grammar": check_grammar(grouped_text),
-            "keyword_analysis": rank_resume(preprocessed_text, preprocess_text(job_desc)),
-            "grouping_analysis": get_hybrid_grouping_analysis(str(resume_path))[1]
-        }
+        formatting_data = analyze_pdf_formatting(resume_path)
+        keyword_results = rank_resume(preprocessed_text, preprocess_text(job_desc))
+        grouping_issues = get_hybrid_grouping_analysis(str(resume_path))[1]
 
-        paraphrased_suggestions = []
+        # Analyze bullet points for grammar and strength
+        bullet_lines = []
+        for para in grouped_lines:
+            if para and para[0] in ("•", "-", "*"):
+                # Remove leading bullet symbol for analysis
+                bullet_text = para[1:].lstrip()
+                bullet_lines.append(bullet_text)
         try:
-            all_bullets = [bullet for section in sections.values() for bullet in section]
-            for bullet in all_bullets[:5]:
-                if is_experience_bullet(bullet):
-                    try:
-                        paraphrased = always_paraphrase_description(bullet)
-                        paraphrased_suggestions.append({
-                            "original": bullet,
-                            "suggestion": paraphrased
-                        })
-                    except Exception as e:
-                        print(f"Paraphrasing failed for bullet: {bullet}\nError: {str(e)}")
+            bullet_analysis = check_grammar_and_strength("\n".join(bullet_lines))
         except Exception as e:
-            print(f"Paraphrasing process failed: {str(e)}")
+            print(f"Error in grammar and strength analysis: {e}")
+            bullet_analysis = {"style_issues": [], "line_analysis": [], "metrics": {}}
 
-        # print("Printing Grammmamrmmagnagiaehgiuaehpgae", analysis_results["grammar"])
-
+        # Compile and return all analysis results
         return jsonify({
-            "score": analysis_results["keyword_analysis"].get("score", 0),
-            "missing_keywords": analysis_results["keyword_analysis"].get("missing_keywords", []),
-            "sections": analysis_results["sections"],
-            "formatting_feedback": format_formatting_results(analysis_results["formatting"]),
-            "grammar_issues": analysis_results["grammar"],
-            "grouping_issues": analysis_results["grouping_analysis"],
-            "feedback": analysis_results["keyword_analysis"].get("feedback", "No feedback available"),
-            "paraphrased_suggestions": paraphrased_suggestions
+            "score": keyword_results.get("score", 0),
+            "missing_keywords": keyword_results.get("missing_keywords", []),
+            "sections": sections,
+            "formatting_feedback": format_formatting_results(formatting_data),
+            "grouping_issues": grouping_issues,
+            "feedback": keyword_results.get("feedback", "No feedback available"),
+            "style_issues": bullet_analysis.get("style_issues", []),
+            "line_analysis": bullet_analysis.get("line_analysis", []),
+            "metrics": bullet_analysis.get("metrics", {})
         })
-
     except Exception as e:
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
