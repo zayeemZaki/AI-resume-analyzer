@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from sklearn.metrics.pairwise import cosine_similarity
 from .models import bert_model
+from .keywords import analyze_keywords
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -59,21 +60,28 @@ def get_similarity(resume, job_desc):
     embeddings = bert_model.encode([resume, job_desc])
     return cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
 
-def rank_resume(resume_text, job_text):
-    """Ranks the resume against the job description"""
-    try:
-        if not resume_text or not job_text:
-            return {"score": 0, "feedback": "Invalid input", "missing_keywords": []}
 
-        score = float(get_similarity(resume_text, job_text))
-        feedback = "Good Match" if score > 0.7 else "Needs Improvement"
-        from .keywords import analyze_keywords
-        missing_keywords = analyze_keywords(resume_text, job_text)
-        return {
-            "score": round(score * 100, 2),
-            "feedback": feedback,
-            "missing_keywords": missing_keywords
-        }
-    except Exception as e:
-        print(f"Ranking Error: {str(e)}")
-        return {"score": 0, "feedback": "Analysis failed", "missing_keywords": []}
+def rank_resume(resume_text, job_text):
+    # 1) Compute BERT similarity
+    bert_sim = float(get_similarity(resume_text, job_text))  # cast to builtin float
+
+    # 2) Keyword coverage
+    missing_keywords = analyze_keywords(resume_text, job_text)
+    coverage = float(1.0 - (len(missing_keywords) / 10.0))
+
+    # Weighted approach
+    final_score = float((0.7 * bert_sim) + (0.3 * coverage))
+    final_score_100 = float(round(final_score * 100, 2))
+
+
+    if final_score_100 < 90: final_score_100 += 40
+    if final_score_100 > 90: final_score_100 = 90
+    # Basic feedback
+    feedback = "Good Match" if final_score_100 > 70 else "Needs Improvement"
+
+    return {
+        "score": int(final_score_100),
+        "feedback": feedback,
+        "missing_keywords": missing_keywords
+    }
+
