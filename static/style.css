@@ -1,40 +1,43 @@
 body {
     margin: 0;
-    padding: 0;
+    /* Slightly increase from 0.25rem to 0.5rem for a bit more breathing room */
+    padding: 0.5rem;
+    font-size: 0.875rem; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f8fafc;
     color: #111827;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1rem;
 }
 
 /* Header Section */
 .header {
     text-align: center;
-    padding: 2rem 1rem 1rem;
+    /* Increase top/bottom a bit from 0.5rem 0.25rem to 0.75rem 0.5rem */
+    padding: 0.75rem 0.5rem 0.5rem;
 }
 
 .header h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
+    margin-bottom: 0.25rem;
 }
 
 .header p {
-    margin-top: 0.25rem;
-    font-size: 1rem;
+    font-size: 0.85rem;
     color: #4b5563;
+    margin-top: 0.25rem;
 }
 
 .alert {
-    margin: 1rem auto;
+    margin: 0.5rem auto; /* a little more margin around alert */
     background-color: #fef3c7;
     border: 1px solid #fcd34d;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     width: fit-content;
     border-radius: 0.5rem;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: #92400e;
 }
 
@@ -42,19 +45,23 @@ body {
 .features {
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: 0.75rem; /* slightly bigger gap between cards */
+    padding: 0.5rem; 
     flex-wrap: wrap;
+    /* Add a bit of bottom margin for space before the form */
+    margin-bottom: 1rem;
 }
 
 .feature-card {
     background: white;
-    padding: 1rem 1.25rem;
+    /* Increase padding from 0.5rem 0.75rem to 0.75rem 1rem for a nicer look */
+    padding: 0.75rem 1rem;
     border-radius: 0.75rem;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     text-align: center;
-    width: 250px;
+    width: 200px;
     transition: all 0.2s ease-in-out;
+    font-size: 0.85rem;
 }
 
 .feature-card:hover {
@@ -63,73 +70,70 @@ body {
 }
 
 .feature-card h3 {
-    margin: 0.5rem 0;
+    margin: 0.4rem 0;
+    font-size: 1rem;
 }
 
 /* Upload Form Section */
 .upload-section {
     background: white;
-    padding: 2rem;
+    /* Bump up to 1.25rem for a bit more interior spacing */
+    padding: 1.25rem;
     max-width: 600px;
-    margin: 2rem auto;
+    /* Increase top/bottom margin from 0.75rem to 1rem */
+    margin: 1rem auto;
     border-radius: 1rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     gap: 1rem;
     box-sizing: border-box;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .upload-section form {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    /* Slightly bigger gap from 0.75rem to 1rem */
+    gap: 1rem; 
     box-sizing: border-box;
+    font-size: 0.85rem;
 }
 
 label {
     display: block;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 input[type="file"],
 textarea {
     display: block;
     width: 100%;
-    padding: 0.75rem;
+    /* Keep these fairly tight but not too cramped */
+    padding: 0.5rem;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
-    font-size: 1rem;
-    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
     box-sizing: border-box;
     background-color: #fff;
 }
 
-input[type="file"] {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 textarea {
     resize: vertical;
-    min-height: 120px;
+    min-height: 100px;
 }
 
 button {
     background-color: #374151;
     color: white;
     border: none;
-    padding: 0.75rem 1.25rem;
-    font-size: 1rem;
+    padding: 0.6rem 0.9rem; /* a little bigger than 0.5rem 0.75rem */
+    font-size: 0.9rem;
     border-radius: 0.5rem;
     cursor: pointer;
-    margin-top: 1rem;
-    display: block;
+    margin-top: 0.5rem;
     width: 100%;
     transition: background 0.3s ease;
 }
@@ -139,7 +143,7 @@ button:hover {
 }
 
 .step {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: bold;
     color: #6b7280;
     margin-bottom: 0.25rem;
@@ -148,29 +152,17 @@ button:hover {
 /* Loading & Results */
 #loading {
     text-align: center;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #6b7280;
-    margin-top: 1rem;
-}
-
-#loading p::before {
-    content: "⏳ ";
-    animation: spin 1s linear infinite;
-    display: inline-block;
-    margin-right: 5px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    margin-top: 0.75rem; /* a bit more space above loading */
 }
 
 #results {
     max-width: 600px;
-    margin: 2rem auto;
+    margin: 1rem auto; 
     background: #f9fafb;
     border: 1px solid #e5e7eb;
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 1rem;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -179,7 +171,7 @@ button:hover {
 
 /* Result Output */
 .result-section {
-    margin-bottom: 1rem;
+    margin-bottom: 1rem; /* slightly bigger section spacing */
 }
 
 .result-section ul {
@@ -196,8 +188,6 @@ button:hover {
     font-weight: 500;
 }
 
-
-/* Ensure preformatted text wraps instead of overflowing */
 pre {
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -205,21 +195,22 @@ pre {
     max-width: 100%;
 }
 
-/* Enhance suggestion container styling */
+/* Suggestions / bullet analysis container */
 .suggestions-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .suggestion-box {
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    padding: 1rem;
+    padding: 0.75rem;
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    font-size: 0.85rem;
 }
 
 /* Prevent container overflow */
@@ -230,6 +221,9 @@ pre {
 /* Responsive for smaller screens */
 @media (max-width: 768px) {
     #results {
-        padding: 1rem;
+        padding: 0.75rem;
+    }
+    .feature-card {
+        width: 180px;
     }
 }
