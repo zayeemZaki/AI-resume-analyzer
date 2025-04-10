@@ -74,7 +74,7 @@ def rank_resume(resume_text, job_text):
     final_score_100 = float(round(final_score * 100, 2))
 
 
-    if final_score_100 < 90: final_score_100 += 40
+    if final_score_100 < 90: final_score_100 += 30
     if final_score_100 > 90: final_score_100 = 90
     # Basic feedback
     feedback = "Good Match" if final_score_100 > 70 else "Needs Improvement"
