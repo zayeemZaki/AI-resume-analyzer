@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // Hide results, show loading
         resultsDiv.classList.add("hidden");
         loadingDiv.classList.remove("hidden");
 
@@ -34,8 +35,6 @@ document.addEventListener("DOMContentLoaded", function () {
             loadingDiv.classList.add("hidden");
             resultsDiv.classList.remove("hidden");
 
-            console.log("[DEBUG] Full backend response:", data);
-
             if (data.error) {
                 resultsContent.innerHTML = `<p class="error"><strong>Error:</strong> ${data.error}</p>`;
                 return;
@@ -44,44 +43,42 @@ document.addEventListener("DOMContentLoaded", function () {
             const styleIssues = data.style_issues || [];
             const lineAnalysis = data.line_analysis || [];
             const metrics = data.metrics || {};
-            console.log("[DEBUG] Style issues:", styleIssues);
-            console.log("[DEBUG] Line analysis:", lineAnalysis);
-            console.log("[DEBUG] Metrics:", metrics);
 
-            // ✅ Build bullet analysis HTML
-            let bulletAnalysisHtml = "";
-            if (styleIssues.length > 0 || lineAnalysis.length > 0) {
-                bulletAnalysisHtml += "<strong>Bullet-by-Bullet Analysis:</strong>";
-                if (styleIssues.length > 0) {
-                    bulletAnalysisHtml += `
-                        <h4>Style Issues:</h4>
-                        <ul>
-                            ${styleIssues.map(issue => `<li>⚠️ ${issue}</li>`).join("")}
-                        </ul>
-                    `;
-                }
-                if (lineAnalysis.length > 0) {
-                    bulletAnalysisHtml += `
-                        <div class="suggestions-container">
-                            ${lineAnalysis.map(entry => `
-                                <div class="suggestion-box">
-                                    <div class="original-text"><em>Original:</em> ${entry.text}</div>
-                                    ${entry.grammar_errors && entry.grammar_errors.length > 0 ? `
-                                    <ul class="grammar-issues-list">
-                                        ${entry.grammar_errors.map(err => `<li>⚠️ ${err}</li>`).join("")}
-                                    </ul>
-                                    ` : `<p class="no-issues">✅ No grammar issues found.</p>`}
-                                    <div class="suggestion-text"><em>Improved:</em> ${entry.paraphrased}</div>
-                                </div>
-                            `).join("")}
+            // Build bullet analysis HTML
+            let bulletAnalysisHtml = `
+                <h3>📋 Bullet Point Analysis</h3>
+                ${styleIssues.length > 0 ? `
+                    <h4>Style Issues:</h4>
+                    <ul>
+                        ${styleIssues.map(issue => `<li>⚠️ ${issue}</li>`).join("")}
+                    </ul>` : "<p>✅ No style issues found.</p>"}
+            `;
+
+            bulletAnalysisHtml += `
+                <div class="suggestions-container">
+                    ${lineAnalysis.map(entry => `
+                        <div class="suggestion-box">
+                            <div class="original-text"><strong>Original:</strong> ${entry.text}</div>
+                            ${entry.grammar_errors && entry.grammar_errors.length > 0 ? `
+                                <ul class="grammar-issues-list">
+                                    ${entry.grammar_errors.map(err => `
+                                        <li>⚠️ ${err.message || err}</li>
+                                    `).join("")}
+                                </ul>
+                            ` : `<p class="no-issues">✅ No grammar issues found.</p>`}
+                            <div class="suggestion-text">
+                                <strong>Improved:</strong> ${
+                                    entry.paraphrased
+                                    ? entry.paraphrased
+                                    : "<i>No suggestion available</i>"
+                                }
+                            </div>
                         </div>
-                    `;
-                }
-            } else {
-                bulletAnalysisHtml = `<p>✅ No bullet analysis available.</p>`;
-            }
+                    `).join("")}
+                </div>
+            `;
 
-            // 🧠 Final HTML
+            // Final results output
             resultsContent.innerHTML = `
                 <h3>Analysis Results</h3>
                 <div class="result-section">
@@ -91,22 +88,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <div class="result-section">
                     <strong>Detected Resume Sections:</strong>
-                    ${Object.keys(data.sections).length > 0 ? `
-                        <ul class="section-list">
-                            ${Object.keys(data.sections).map(section => `
-                                <li><span class="section-name">${section}</span> (${data.sections[section].length} items)</li>
-                            `).join("")}
-                        </ul>
-                    ` : `<p>❌ No sections detected</p>`}
+                    ${
+                        data.sections && Object.keys(data.sections).length > 0
+                        ? `
+                            <ul class="section-list">
+                                ${Object.keys(data.sections).map(section => `
+                                    <li><span class="section-name">${section}</span> (${data.sections[section].length} items)</li>
+                                `).join("")}
+                            </ul>
+                          `
+                        : `<p>❌ No sections detected</p>`
+                    }
                 </div>
 
                 <div class="result-section">
                     <strong>Missing Keywords:</strong>
-                    ${data.missing_keywords.length > 0 ? `
-                        <ul>
-                            ${data.missing_keywords.map(kw => `<li>${kw}</li>`).join("")}
-                        </ul>
-                    ` : `<p>✅ All important keywords matched!</p>`}
+                    ${
+                        data.missing_keywords && data.missing_keywords.length > 0
+                        ? `
+                            <ul>
+                                ${data.missing_keywords.map(kw => `<li>${kw}</li>`).join("")}
+                            </ul>
+                          `
+                        : `<p>✅ All important keywords matched!</p>`
+                    }
                 </div>
 
                 <div class="result-section">
@@ -115,20 +120,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <div class="result-section">
                     <strong>Formatting Issues:</strong>
-                    ${data.formatting_feedback && data.formatting_feedback.length > 0 ? `
-                        <ul>
-                            ${data.formatting_feedback.map(fb => `<li>${fb}</li>`).join("")}
-                        </ul>
-                    ` : `<p>✅ Perfect formatting!</p>`}
+                    ${
+                        data.formatting_feedback && data.formatting_feedback.length > 0
+                        ? `
+                            <ul>
+                                ${data.formatting_feedback.map(fb => `<li>${fb}</li>`).join("")}
+                            </ul>
+                          `
+                        : `<p>✅ Perfect formatting!</p>`
+                    }
                 </div>
 
                 <div class="result-section">
                     <strong>Content Organization:</strong>
-                    ${data.grouping_issues && data.grouping_issues.length > 0 ? `
-                        <ul>
-                            ${data.grouping_issues.map(issue => `<li>${issue}</li>`).join("")}
-                        </ul>
-                    ` : `<p>✅ Content well-organized!</p>`}
+                    ${
+                        data.grouping_issues && data.grouping_issues.length > 0
+                        ? `
+                            <ul>
+                                ${data.grouping_issues.map(issue => `<li>${issue}</li>`).join("")}
+                            </ul>
+                          `
+                        : `<p>✅ Content well-organized!</p>`
+                    }
                 </div>
             `;
         })
