@@ -1,5 +1,5 @@
 # Core packages you explicitly requested:
-Flask
+flask
 pdfplumber
 docx2txt
 spacy
