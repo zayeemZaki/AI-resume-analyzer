@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Hide results, show loading
         resultsDiv.classList.add("hidden");
         loadingDiv.classList.remove("hidden");
 
@@ -30,55 +29,86 @@ document.addEventListener("DOMContentLoaded", function () {
             method: "POST",
             body: formData,
         })
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
             loadingDiv.classList.add("hidden");
             resultsDiv.classList.remove("hidden");
+
+            console.log("[DEBUG] Full backend response:", data);
 
             if (data.error) {
                 resultsContent.innerHTML = `<p class="error"><strong>Error:</strong> ${data.error}</p>`;
                 return;
             }
 
+            // 1) Grab data from response
             const styleIssues = data.style_issues || [];
             const lineAnalysis = data.line_analysis || [];
             const metrics = data.metrics || {};
+            console.log("[DEBUG] Style issues:", styleIssues);
+            console.log("[DEBUG] Line analysis:", lineAnalysis);
+            console.log("[DEBUG] Metrics:", metrics);
 
-            // Build bullet analysis HTML
-            let bulletAnalysisHtml = `
-                <h3>📋 Bullet Point Analysis</h3>
-                ${styleIssues.length > 0 ? `
-                    <h4>Style Issues:</h4>
-                    <ul>
-                        ${styleIssues.map(issue => `<li>⚠️ ${issue}</li>`).join("")}
-                    </ul>` : "<p>✅ No style issues found.</p>"}
-            `;
+            // 2) Build bullet analysis HTML
+            let bulletAnalysisHtml = "";
+            if (styleIssues.length > 0 || lineAnalysis.length > 0) {
+                bulletAnalysisHtml += "<strong>Bullet-by-Bullet Analysis:</strong>";
 
-            bulletAnalysisHtml += `
-                <div class="suggestions-container">
-                    ${lineAnalysis.map(entry => `
-                        <div class="suggestion-box">
-                            <div class="original-text"><strong>Original:</strong> ${entry.text}</div>
-                            ${entry.grammar_errors && entry.grammar_errors.length > 0 ? `
-                                <ul class="grammar-issues-list">
-                                    ${entry.grammar_errors.map(err => `
-                                        <li>⚠️ ${err.message || err}</li>
-                                    `).join("")}
-                                </ul>
-                            ` : `<p class="no-issues">✅ No grammar issues found.</p>`}
-                            <div class="suggestion-text">
-                                <strong>Improved:</strong> ${
-                                    entry.paraphrased
-                                    ? entry.paraphrased
-                                    : "<i>No suggestion available</i>"
-                                }
-                            </div>
+                // Show style issues
+                if (styleIssues.length > 0) {
+                    bulletAnalysisHtml += `
+                        <h4>Style Issues:</h4>
+                        <ul>
+                            ${styleIssues.map(issue => `<li>⚠️ ${issue}</li>`).join("")}
+                        </ul>
+                    `;
+                }
+
+                // Show line-by-line analysis
+                if (lineAnalysis.length > 0) {
+                    bulletAnalysisHtml += `
+                        <div class="suggestions-container">
+                            ${lineAnalysis.map(entry => {
+
+                                // Grammar error display
+                                const grammarHtml = (entry.grammar_errors && entry.grammar_errors.length > 0)
+                                    ? `
+                                        <ul class="grammar-issues-list">
+                                            ${entry.grammar_errors.map(err => `
+                                                <li>⚠️ ${err.message || err}</li>
+                                            `).join("")}
+                                        </ul>
+                                      `
+                                    : `<p class="no-issues">✅ No grammar issues found.</p>`;
+
+                                // Paraphrased suggestion
+                                const improvedHtml = entry.paraphrased
+                                    ? `<strong>Improved:</strong> ${entry.paraphrased}`
+                                    : `<strong>Improved:</strong> <i>No suggestion available</i>`;
+
+                                // Diff highlighting (if any)
+                                // We'll store the HTML in entry.diff_html if your backend provides it
+                                const diffHtml = entry.diff_html
+                                    ? `<div class="diff-highlight"><strong>Changes:</strong><br/>${entry.diff_html}</div>`
+                                    : "";
+
+                                return `
+                                    <div class="suggestion-box">
+                                        <div class="original-text"><em>Original:</em> ${entry.text}</div>
+                                        ${grammarHtml}
+                                        <div class="suggestion-text">${improvedHtml}</div>
+                                        ${diffHtml}
+                                    </div>
+                                `;
+                            }).join("")}
                         </div>
-                    `).join("")}
-                </div>
-            `;
+                    `;
+                }
+            } else {
+                bulletAnalysisHtml = `<p>✅ No bullet analysis available.</p>`;
+            }
 
-            // Final results output
+            // 3) Build the rest of your results (unchanged from your existing code)
             resultsContent.innerHTML = `
                 <h3>Analysis Results</h3>
                 <div class="result-section">
@@ -145,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
         })
-        .catch(err => {
+        .catch((err) => {
             loadingDiv.classList.add("hidden");
             resultsDiv.classList.remove("hidden");
             resultsContent.innerHTML = `<p class="error"><strong>Error:</strong> Something went wrong. Please try again.</p>`;
