@@ -1,4 +1,3 @@
-# Core packages you explicitly requested:
 flask
 pdfplumber
 docx2txt
@@ -8,8 +7,6 @@ sentence-transformers
 scikit-learn
 gunicorn
 sentencepiece
-
-# Additional libraries your code relies on:
 language-tool-python
 transformers
 skillNer
