@@ -1,6 +1,6 @@
 import pdfplumber
 import re
-from .models import bert_model  # kept for consistency, though not used here
+from .models import bert_model  # not actively used, but kept for consistency
 
 def normalize_font_name(font_name):
     """
@@ -15,25 +15,73 @@ def normalize_font_name(font_name):
 
 def analyze_pdf_formatting(pdf_path):
     """
-    Analyzes a PDF resume for font consistency, bullet usage, etc.
-    Fonts that normalize to 'symbol' are ignored.
-    Returns a dictionary with overall formatting statistics.
+    Analyzes a PDF resume for:
+     - overall font consistency
+     - bullet usage
+     - bullet line font/style consistency (NEW)
+     - etc.
+
+    Returns a dictionary with overall formatting statistics, plus bullet font consistency feedback
+    in "bullet_font_consistency".
     """
     font_usage = set()
     bullet_count = 0
     total_lines = 0
+
+    # For bullet font consistency checks (NEW)
+    bullet_fonts = []
+    bullet_sizes = []
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
             if not text:
                 continue
+
+            # Count lines for bullet percentage
             lines = text.split("\n")
             total_lines += len(lines)
+
+            # Count bullet lines (simple text-based detection)
             for line in lines:
                 line_stripped = line.strip()
-                if line_stripped.startswith("-") or line_stripped.startswith("•") or line_stripped.startswith("*"):
+                if line_stripped.startswith(("•", "-", "*")):
                     bullet_count += 1
+
+            # We also gather all per-character info to detect bullet line font usage
+            chars = sorted(page.chars, key=lambda c: float(c['top']))
+
+            # Group characters by line "top" value
+            line_map = {}
+            for c in chars:
+                top_val = round(float(c['top']))
+                line_map.setdefault(top_val, []).append(c)
+
+            for top_val, char_list in line_map.items():
+                # Sort by x0 to get correct reading order
+                char_list.sort(key=lambda c: float(c['x0']))
+                line_text = "".join(ch["text"] for ch in char_list).strip()
+
+                # If text starts with bullet symbol, gather fonts/sizes (NEW)
+                if line_text.startswith(("•", "-", "*")):
+                    line_fonts = set()
+                    line_sizes = set()
+                    for ch in char_list:
+                        raw_font = ch.get("fontname", "")
+                        norm_font = normalize_font_name(raw_font)
+                        if norm_font == "symbol":
+                            continue
+                        size = round(ch.get("size", 0), 1)
+                        line_fonts.add(norm_font)
+                        line_sizes.add(size)
+
+                    # For simplicity, store the first font and size (or entire set)
+                    # We'll do a simpler approach: pick any one from the set
+                    if line_fonts and line_sizes:
+                        bullet_fonts.append(list(line_fonts)[0])
+                        bullet_sizes.append(list(line_sizes)[0])
+
+            # Also track global font usage
             for char in page.chars:
                 raw_font = char.get("fontname", "")
                 normalized_font = normalize_font_name(raw_font)
@@ -41,10 +89,13 @@ def analyze_pdf_formatting(pdf_path):
                     continue
                 size = round(char.get("size", 0), 1)
                 font_usage.add((normalized_font, size))
-    
+
     unique_font_names = len({f[0] for f in font_usage})
     unique_font_sizes = len({f[1] for f in font_usage})
     bullet_percentage = (bullet_count / total_lines) * 100 if total_lines else 0
+
+    # NEW: Check bullet font/style consistency
+    bullet_font_consistency_msg = check_bullet_font_consistency(bullet_fonts, bullet_sizes)
 
     return {
         "total_lines": total_lines,
@@ -54,8 +105,35 @@ def analyze_pdf_formatting(pdf_path):
         "unique_font_names": unique_font_names,
         "unique_font_sizes": unique_font_sizes,
         "all_fonts_and_sizes": list(font_usage),
+        "bullet_font_consistency": bullet_font_consistency_msg  # NEW
     }
 
+def check_bullet_font_consistency(bullet_fonts, bullet_sizes):
+    """
+    If bullet_fonts / bullet_sizes are not uniform, we generate warnings.
+    If they're all the same, we say "All bullet lines share the same font and size."
+    """
+    if not bullet_fonts:
+        return "No bullet lines detected or no font data for bullet lines."
+
+    unique_fonts = set(bullet_fonts)
+    unique_sizes = set(bullet_sizes)
+
+    if len(unique_fonts) == 1 and len(unique_sizes) == 1:
+        # Perfect consistency
+        font = list(unique_fonts)[0]
+        size = list(unique_sizes)[0]
+        return f"All bullet lines share the same font '{font}' and size {size}."
+    else:
+        # Mismatch
+        msgs = []
+        if len(unique_fonts) > 1:
+            msgs.append(f"Bullet lines use multiple fonts: {', '.join(unique_fonts)}.")
+        if len(unique_sizes) > 1:
+            msgs.append(f"Bullet lines use multiple font sizes: {', '.join(map(str, unique_sizes))}.")
+        return " ".join(msgs)
+
+# The rest of the file (for spacing, line info, etc.) remains unchanged
 def get_line_info(pdf_path, y_threshold=2):
     """
     Extracts lines from the PDF along with their average font size, common font, vertical position,

@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("resumeForm");
     const fileInput = document.getElementById("resumeUpload");
@@ -39,11 +40,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            // Get grammar analysis, style issues
             const styleIssues = data.style_issues || [];
             const lineAnalysis = data.line_analysis || [];
-            const metrics = data.metrics || {};
 
-            // Show bullet-by-bullet analysis
             let bulletAnalysisHtml = "<strong>Bullet-by-Bullet Analysis:</strong>";
             if (styleIssues.length > 0) {
                 bulletAnalysisHtml += `
@@ -88,11 +88,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 bulletAnalysisHtml += `<p>✅ No bullet analysis available.</p>`;
             }
 
-            // Build a new block (REPLACING 'Detected Resume Sections') with recommended sections
+            // We keep your recommended sections block
             const recommendedSectionsHtml = `
                 <div class="result-section">
                     <strong>Resume Sections Recommendation:</strong>
-                    <p>We recommend including the following sections in your resume:
+                    <p>We recommend including the following sections:
                     <ul>
                         <li>EXPERIENCE</li>
                         <li>EDUCATION</li>
@@ -107,21 +107,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            // Final results HTML
+            // Build final results
+            const formattingFeedback = data.formatting_feedback || [];
+            const groupingIssues = data.grouping_issues || [];
+            const missingKeywords = data.missing_keywords || [];
+            const atsScore = data.score;
+            const feedback = data.feedback || "No feedback available";
+
             resultsContent.innerHTML = `
                 <h3>Analysis Results</h3>
                 <div class="result-section">
-                    <p><strong>ATS Compatibility Score:</strong> ${data.score}/100</p>
-                    <p><strong>Overall Feedback:</strong> ${data.feedback || "No feedback available"}</p>
+                    <p><strong>ATS Compatibility Score:</strong> ${atsScore}/100</p>
+                    <p><strong>Overall Feedback:</strong> ${feedback}</p>
                 </div>
 
                 <div class="result-section">
                     <strong>Missing Keywords:</strong>
                     ${
-                      data.missing_keywords && data.missing_keywords.length > 0
+                      missingKeywords.length > 0
                       ? `
                         <ul>
-                            ${data.missing_keywords.map(kw => `<li>${kw}</li>`).join("")}
+                            ${missingKeywords.map(kw => `<li>${kw}</li>`).join("")}
                         </ul>
                         `
                       : `<p>✅ All important keywords matched!</p>`
@@ -137,10 +143,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="result-section">
                     <strong>Formatting Issues:</strong>
                     ${
-                      data.formatting_feedback && data.formatting_feedback.length > 0
+                      formattingFeedback.length > 0
                       ? `
                         <ul>
-                            ${data.formatting_feedback.map(fb => `<li>${fb}</li>`).join("")}
+                            ${formattingFeedback.map(fb => `<li>${fb}</li>`).join("")}
                         </ul>
                         `
                       : `<p>✅ Perfect formatting!</p>`
@@ -150,10 +156,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="result-section">
                     <strong>Content Organization:</strong>
                     ${
-                      data.grouping_issues && data.grouping_issues.length > 0
+                      groupingIssues.length > 0
                       ? `
                         <ul>
-                            ${data.grouping_issues.map(issue => `<li>${issue}</li>`).join("")}
+                            ${groupingIssues.map(issue => `<li>${issue}</li>`).join("")}
                         </ul>
                         `
                       : `<p>✅ Content well-organized!</p>`

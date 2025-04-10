@@ -67,26 +67,24 @@ def analyze_resume():
                     current_para = []
                 continue
 
-            # If line starts with a bullet
+            # If line starts with a bullet symbol
             if stripped.startswith(("•", "-", "*")):
                 # close existing paragraph if any
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
                     current_para = []
-                # start a new paragraph with this bullet
+                # start a new bullet paragraph
                 current_para.append(stripped)
             else:
-                # just accumulate text in the current paragraph
                 current_para.append(stripped)
 
-        # if leftover
         if current_para:
             grouped_lines.append(" ".join(current_para))
 
         grouped_text = "\n\n".join(grouped_lines)
         preprocessed_text = preprocess_text(grouped_text)
 
-        # Debug file
+        # Export debug
         debug_path = Path(app.config["UPLOAD_FOLDER"]) / "grouped_output_debug.txt"
         with open(debug_path, "w", encoding="utf-8") as f:
             f.write(grouped_text)
@@ -97,18 +95,14 @@ def analyze_resume():
         keyword_results = rank_resume(preprocessed_text, preprocess_text(job_desc))
         grouping_issues = get_hybrid_grouping_analysis(str(resume_path))[1]
 
-        # We no longer extract sections
-
         # Step 4: Grammar & bullet-based paraphrasing
         bullet_lines = []
         for para in grouped_lines:
-            # Check if paragraph starts with bullet symbol
             if para and para[0] in ("•", "-", "*"):
                 # remove the symbol
                 bullet_text = para[1:].lstrip()
                 bullet_lines.append(bullet_text)
 
-        # Now pass bullet lines to grammar check
         bullet_analysis = {}
         try:
             bullet_analysis = check_grammar_and_strength("\n".join(bullet_lines))
@@ -117,9 +111,11 @@ def analyze_resume():
             bullet_analysis = {"style_issues": [], "line_analysis": [], "metrics": {}}
 
         # Step 5: Build final JSON
+        # We'll incorporate formatting_data, including bullet_font_consistency if any
         return jsonify({
-            "score": keyword_results.get("score", 0),  # from rank_resume
+            "score": keyword_results.get("score", 0),
             "missing_keywords": keyword_results.get("missing_keywords", []),
+            # We'll convert formatting_data into user-friendly messages
             "formatting_feedback": format_formatting_results(formatting_data),
             "grouping_issues": grouping_issues,
             "feedback": keyword_results.get("feedback", "No feedback available"),
@@ -132,11 +128,23 @@ def analyze_resume():
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
 def format_formatting_results(formatting_data):
+    """
+    Convert the raw formatting_data dictionary into a list of feedback messages.
+    E.g. bullet_font_consistency, etc.
+    """
     messages = []
+
+    # Font name usage
     if formatting_data.get("unique_font_names", 0) > 3:
-        messages.append(f"Too many fonts ({formatting_data['unique_font_names']}) - Use 2-3 maximum")
+        messages.append(f"Too many different fonts ({formatting_data['unique_font_names']}) - use 2-3 maximum.")
     if formatting_data.get("bullet_percentage", 0) < 30:
-        messages.append("Low bullet point usage - Increase to ≥40% for better readability")
+        messages.append(f"Low bullet usage ({formatting_data['bullet_percentage']}%) - Increase to ~40% or more for clarity.")
+
+    # (NEW) bullet font/style check
+    bullet_consistency_msg = formatting_data.get("bullet_font_consistency")
+    if bullet_consistency_msg:
+        messages.append(f"[Bullet Font Check] {bullet_consistency_msg}")
+
     return messages
 
 if __name__ == "__main__":
