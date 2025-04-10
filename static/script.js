@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("resumeForm");
     const fileInput = document.getElementById("resumeUpload");
@@ -40,11 +39,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            // Get grammar analysis, style issues
+            // Grammar / bullet analysis
             const styleIssues = data.style_issues || [];
             const lineAnalysis = data.line_analysis || [];
-
             let bulletAnalysisHtml = "<strong>Bullet-by-Bullet Analysis:</strong>";
+
+            // style issues
             if (styleIssues.length > 0) {
                 bulletAnalysisHtml += `
                     <h4>Style Issues:</h4>
@@ -53,22 +53,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     </ul>
                 `;
             }
+            // grammar line analysis
             if (lineAnalysis.length > 0) {
                 bulletAnalysisHtml += `
                     <div class="suggestions-container">
                         ${lineAnalysis.map(entry => {
-                            const grammarHtml = entry.grammar_errors && entry.grammar_errors.length > 0
+                            const grammarHtml =
+                              entry.grammar_errors && entry.grammar_errors.length > 0
                                 ? `
-                                    <ul class="grammar-issues-list">
-                                        ${entry.grammar_errors.map(err => `
-                                            <li>⚠️ ${err.message || err}</li>
-                                        `).join("")}
-                                    </ul>
+                                  <ul class="grammar-issues-list">
+                                      ${entry.grammar_errors.map(err => `<li>⚠️ ${err.message || err}</li>`).join("")}
+                                  </ul>
                                   `
                                 : `<p class="no-issues">✅ No grammar issues found.</p>`;
+
                             const improvedHtml = entry.paraphrased
                                 ? `<strong>Improved:</strong> ${entry.paraphrased}`
                                 : `<strong>Improved:</strong> <i>No suggestion available</i>`;
+
                             const diffHtml = entry.diff_html
                                 ? `<div class="diff-highlight"><strong>Changes:</strong><br/>${entry.diff_html}</div>`
                                 : "";
@@ -88,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 bulletAnalysisHtml += `<p>✅ No bullet analysis available.</p>`;
             }
 
-            // We keep your recommended sections block
+            // recommended sections
             const recommendedSectionsHtml = `
                 <div class="result-section">
                     <strong>Resume Sections Recommendation:</strong>
@@ -109,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Build final results
             const formattingFeedback = data.formatting_feedback || [];
-            const groupingIssues = data.grouping_issues || [];
+            // REMOVED grouping_issues usage
             const missingKeywords = data.missing_keywords || [];
             const atsScore = data.score;
             const feedback = data.feedback || "No feedback available";
@@ -150,19 +152,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         </ul>
                         `
                       : `<p>✅ Perfect formatting!</p>`
-                    }
-                </div>
-
-                <div class="result-section">
-                    <strong>Content Organization:</strong>
-                    ${
-                      groupingIssues.length > 0
-                      ? `
-                        <ul>
-                            ${groupingIssues.map(issue => `<li>${issue}</li>`).join("")}
-                        </ul>
-                        `
-                      : `<p>✅ Content well-organized!</p>`
                     }
                 </div>
             `;

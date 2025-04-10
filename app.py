@@ -3,10 +3,11 @@ import os
 import re
 from pathlib import Path
 
-# Updated imports:
+# Keep these imports
 from utils.text_processing import extract_text, preprocess_text, rank_resume
 from utils.formatting import analyze_pdf_formatting
-from utils.grouping import get_hybrid_grouping_analysis
+# REMOVE the grouping import (was used for content organization)
+# from utils.grouping import get_hybrid_grouping_analysis
 from utils.enhanced_grammar_and_paraphrasing import check_grammar_and_strength
 
 app = Flask(__name__)
@@ -32,8 +33,8 @@ def analyze_resume():
     """
     1) Extract bullet lines from PDF/DOCX
     2) Group them so we can do grammar checks
-    3) Analyze for ATS rank, formatting, grouping, grammar, etc.
-    4) Return JSON with no 'sections'
+    3) Analyze for ATS rank, formatting, grammar, etc.
+    4) Return JSON WITHOUT 'Content Organization' or 'grouping_issues'
     """
     if "resume" not in request.files:
         return jsonify({"error": "No resume uploaded"}), 400
@@ -60,7 +61,7 @@ def analyze_resume():
         for line in lines:
             stripped = line.strip()
 
-            # If blank line → end current paragraph
+            # If blank line -> end current paragraph
             if not stripped:
                 if current_para:
                     grouped_lines.append(" ".join(current_para))
@@ -93,13 +94,14 @@ def analyze_resume():
         # Step 3: Analyze
         formatting_data = analyze_pdf_formatting(resume_path)
         keyword_results = rank_resume(preprocessed_text, preprocess_text(job_desc))
-        grouping_issues = get_hybrid_grouping_analysis(str(resume_path))[1]
+
+        # REMOVED: grouping_issues = get_hybrid_grouping_analysis(str(resume_path))[1]
+        # because we no longer want Content Organization logic
 
         # Step 4: Grammar & bullet-based paraphrasing
         bullet_lines = []
         for para in grouped_lines:
             if para and para[0] in ("•", "-", "*"):
-                # remove the symbol
                 bullet_text = para[1:].lstrip()
                 bullet_lines.append(bullet_text)
 
@@ -110,14 +112,12 @@ def analyze_resume():
             print(f"Error in grammar and strength analysis: {e}")
             bullet_analysis = {"style_issues": [], "line_analysis": [], "metrics": {}}
 
-        # Step 5: Build final JSON
-        # We'll incorporate formatting_data, including bullet_font_consistency if any
+        # Step 5: Build final JSON (no grouping_issues)
         return jsonify({
             "score": keyword_results.get("score", 0),
             "missing_keywords": keyword_results.get("missing_keywords", []),
-            # We'll convert formatting_data into user-friendly messages
             "formatting_feedback": format_formatting_results(formatting_data),
-            "grouping_issues": grouping_issues,
+            # "grouping_issues": grouping_issues,  <-- REMOVED
             "feedback": keyword_results.get("feedback", "No feedback available"),
             "style_issues": bullet_analysis.get("style_issues", []),
             "line_analysis": bullet_analysis.get("line_analysis", []),
@@ -128,19 +128,17 @@ def analyze_resume():
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
 def format_formatting_results(formatting_data):
-    """
-    Convert the raw formatting_data dictionary into a list of feedback messages.
-    E.g. bullet_font_consistency, etc.
-    """
     messages = []
 
-    # Font name usage
     if formatting_data.get("unique_font_names", 0) > 3:
-        messages.append(f"Too many different fonts ({formatting_data['unique_font_names']}) - use 2-3 maximum.")
+        messages.append(
+            f"Too many different fonts ({formatting_data['unique_font_names']}) - use 2-3 maximum."
+        )
     if formatting_data.get("bullet_percentage", 0) < 30:
-        messages.append(f"Low bullet usage ({formatting_data['bullet_percentage']}%) - Increase to ~40% or more for clarity.")
+        messages.append(
+            f"Low bullet usage ({formatting_data['bullet_percentage']}%) - Increase to ~40% or more for clarity."
+        )
 
-    # (NEW) bullet font/style check
     bullet_consistency_msg = formatting_data.get("bullet_font_consistency")
     if bullet_consistency_msg:
         messages.append(f"[Bullet Font Check] {bullet_consistency_msg}")
