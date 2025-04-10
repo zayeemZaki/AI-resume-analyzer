@@ -39,12 +39,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            // Grammar / bullet analysis
+            // Extract data
             const styleIssues = data.style_issues || [];
             const lineAnalysis = data.line_analysis || [];
+            const formattingFeedback = data.formatting_feedback || [];
+            const missingKeywords = data.missing_keywords || [];
+            const atsScore = data.score || 0;
+            const feedback = data.feedback || "No feedback available";
+
+            // 1) Build bullet-by-bullet analysis
             let bulletAnalysisHtml = "<strong>Bullet-by-Bullet Analysis:</strong>";
 
-            // style issues
+            // If we have style issues
             if (styleIssues.length > 0) {
                 bulletAnalysisHtml += `
                     <h4>Style Issues:</h4>
@@ -53,44 +59,81 @@ document.addEventListener("DOMContentLoaded", function () {
                     </ul>
                 `;
             }
-            // grammar line analysis
+
+            // If we have line-by-line analyses
             if (lineAnalysis.length > 0) {
                 bulletAnalysisHtml += `
                     <div class="suggestions-container">
-                        ${lineAnalysis.map(entry => {
-                            const grammarHtml =
-                              entry.grammar_errors && entry.grammar_errors.length > 0
-                                ? `
-                                  <ul class="grammar-issues-list">
-                                      ${entry.grammar_errors.map(err => `<li>⚠️ ${err.message || err}</li>`).join("")}
-                                  </ul>
-                                  `
-                                : `<p class="no-issues">✅ No grammar issues found.</p>`;
+                        ${
+                          lineAnalysis.map(entry => {
+                            // Grammar block
+                            let grammarHtml;
+                            if (entry.grammar_errors && entry.grammar_errors.length > 0) {
+                                grammarHtml = `
+                                  <div class="analysis-grammar">
+                                    <span class="analysis-label">Grammar Issues</span>
+                                    <ul>
+                                      ${
+                                        entry.grammar_errors.map(err =>
+                                          `<li class="grammar-item">⚠️ ${err.message || err}</li>`
+                                        ).join("")
+                                      }
+                                    </ul>
+                                  </div>
+                                `;
+                            } else {
+                                grammarHtml = `
+                                  <p class="analysis-grammar-ok">✅ No grammar issues found.</p>
+                                `;
+                            }
 
-                            const improvedHtml = entry.paraphrased
-                                ? `<strong>Improved:</strong> ${entry.paraphrased}`
-                                : `<strong>Improved:</strong> <i>No suggestion available</i>`;
-
-                            const diffHtml = entry.diff_html
-                                ? `<div class="diff-highlight"><strong>Changes:</strong><br/>${entry.diff_html}</div>`
-                                : "";
-
-                            return `
-                                <div class="suggestion-box">
-                                    <div class="original-text"><em>Original:</em> ${entry.text}</div>
-                                    ${grammarHtml}
-                                    <div class="suggestion-text">${improvedHtml}</div>
-                                    ${diffHtml}
-                                </div>
+                            // Improved text block
+                            const improvedBlock = `
+                              <div class="analysis-improved">
+                                <span class="analysis-label">Improved</span>
+                                <p>${
+                                  entry.paraphrased
+                                  ? entry.paraphrased
+                                  : "<i>No suggestion available</i>"
+                                }</p>
+                              </div>
                             `;
-                        }).join("")}
+
+                            // Diff changes block (optional)
+                            let diffBlock = "";
+                            if (entry.diff_html) {
+                                diffBlock = `
+                                  <div class="analysis-changes">
+                                    <span class="analysis-label">Changes</span>
+                                    <p>${entry.diff_html}</p>
+                                  </div>
+                                `;
+                            }
+
+                            // Combine into final "analysis-card"
+                            return `
+                              <div class="analysis-card">
+                                <div class="analysis-header">
+                                  <span class="analysis-label">Original</span>
+                                  <p class="analysis-original">${entry.text}</p>
+                                </div>
+
+                                <div class="analysis-body">
+                                  ${grammarHtml}
+                                  ${improvedBlock}
+                                  ${diffBlock}
+                                </div>
+                              </div>
+                            `;
+                          }).join("")
+                        }
                     </div>
                 `;
             } else {
                 bulletAnalysisHtml += `<p>✅ No bullet analysis available.</p>`;
             }
 
-            // recommended sections
+            // 2) Build recommended sections block
             const recommendedSectionsHtml = `
                 <div class="result-section">
                     <strong>Resume Sections Recommendation:</strong>
@@ -109,13 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            // Build final results
-            const formattingFeedback = data.formatting_feedback || [];
-            // REMOVED grouping_issues usage
-            const missingKeywords = data.missing_keywords || [];
-            const atsScore = data.score;
-            const feedback = data.feedback || "No feedback available";
-
+            // 3) Final results HTML
             resultsContent.innerHTML = `
                 <h3>Analysis Results</h3>
                 <div class="result-section">

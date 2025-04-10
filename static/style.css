@@ -1,8 +1,7 @@
 body {
     margin: 0;
-    /* Slightly increase from 0.25rem to 0.5rem for a bit more breathing room */
-    padding: 0.5rem;
-    font-size: 0.875rem; 
+    padding: 0.5rem; /* a bit smaller than 1rem */
+    font-size: 0.875rem; /* ~14px base */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f8fafc;
     color: #111827;
@@ -159,15 +158,16 @@ button:hover {
 
 #results {
     max-width: 600px;
-    margin: 1rem auto; 
+    margin: 2rem auto;
     background: #f9fafb;
     border: 1px solid #e5e7eb;
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 1rem;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
 }
+
 
 /* Result Output */
 .result-section {
@@ -227,3 +227,112 @@ pre {
         width: 180px;
     }
 }
+
+
+
+.analysis-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .analysis-header {
+    padding: 0.5rem;
+    background: #f3f4f6; /* mild gray background */
+    border-radius: 0.25rem;
+  }
+  
+  .analysis-header .analysis-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #374151;
+  }
+  
+  .analysis-original {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #1f2937;
+  }
+  
+  .analysis-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Grammar Issues Block */
+  .analysis-grammar {
+    background: #fff7ed;       /* light orange/yellow */
+    border-left: 4px solid #fbbf24;  /* deeper orange border */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+  }
+  
+  .analysis-grammar .analysis-label {
+    color: #b45309; /* deeper text color for "Grammar Issues" label */
+    font-weight: 600;
+  }
+  
+  .grammar-item {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #6b7280;
+  }
+  
+  .analysis-grammar-ok {
+    color: #10b981; /* green for no grammar issues */
+    margin: 0;
+    font-weight: 500;
+  }
+  
+  /* Improved block */
+  .analysis-improved {
+    background: #ecfdf5;      /* light green background */
+    border-left: 4px solid #10b981; /* dark green border */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+  }
+  
+  .analysis-improved .analysis-label {
+    color: #065f46; 
+    font-weight: 600;
+  }
+  
+  .analysis-improved p {
+    margin: 0.25rem 0 0;
+    color: #065f46;
+  }
+  
+  /* Changes (diff) block */
+  .analysis-changes {
+    background: #eef2ff;      /* light purple */
+    border-left: 4px solid #6366f1; /* deeper purple border */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+  }
+  
+  .analysis-changes .analysis-label {
+    color: #4f46e5;
+    font-weight: 600;
+  }
+  
+  .analysis-changes p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  
+  /* Make sure the .suggestions-container has a bit more spacing to separate bullet cards */
+  .suggestions-container {
+    gap: 1.5rem;
+  }
+  
