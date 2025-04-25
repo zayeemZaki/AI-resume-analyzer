@@ -10,6 +10,8 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 3. Install Dependencies
    >pip install -r requirements.txt
 4. Download Required Language Models
+   >python -m spacy download en_core_web_lg
+   >python -m spacy download en_core_web_sm
 5. Run the Application
    >python app.py
 
