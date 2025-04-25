@@ -11,3 +11,4 @@ language-tool-python
 transformers
 skillNer
 ipython
+en_core_web_lg
