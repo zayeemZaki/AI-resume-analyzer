@@ -7,6 +7,8 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 - Matches resumes with job descriptions.
 - Provides match scores and feedback.
 
+  Create & Activate Virtual Environment (Python)
+
 ## Setup:
 1. Install dependencies:
    ```sh
