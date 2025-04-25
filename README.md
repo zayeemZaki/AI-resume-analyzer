@@ -9,12 +9,12 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
       git clone https://github.com/zayeemZaki/AI-resume-analyzer.git
       cd AI-resume-analyzer
 2. Set Up the Virtual Environment:
-   # for macOS/Linux
+   ### for macOS/Linux
    >python3 -m venv venv
    >source venv/bin/activate
    ---
-   # for windows
-   >python -m venv venv
+   ### for windows
+   >python -m venv venv '\n'
    >venv\Scripts\activate
    ---
 5. Install Dependencies
