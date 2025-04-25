@@ -11,10 +11,12 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 2. Set Up the Virtual Environment:
    ### for macOS/Linux
    >python3 -m venv venv
+   
    >source venv/bin/activate
    ---
    ### for windows
-   >python -m venv venv '\n'
+   >python -m venv venv
+   
    >venv\Scripts\activate
    ---
 5. Install Dependencies
