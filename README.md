@@ -21,15 +21,17 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
    ---
 5. Install Dependencies
    >pip install -r requirements.txt
+   
    or
+   
    >pip3 install -r requirements.txt
-6. Download Required Language Models
+7. Download Required Language Models
    >python -m spacy download en_core_web_lg
    
    >python -m spacy download en_core_web_sm
-7. Run the Application
+8. Run the Application
    >python app.py
-8. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
+9. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
 
 #Notes
 On first run, the app may download:
