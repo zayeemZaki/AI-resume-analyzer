@@ -32,8 +32,9 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
    
    `python -m spacy download en_core_web_sm`
 9. Run the Application
+
    `python app.py`
-10. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
+11. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
 
 #Notes
 On first run, the app may download:
