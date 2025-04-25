@@ -10,3 +10,4 @@ sentencepiece
 language-tool-python
 transformers
 skillNer
+ipython
