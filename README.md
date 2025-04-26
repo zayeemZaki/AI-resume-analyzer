@@ -10,19 +10,19 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 
 2. Skip this step if you already have Java 17 or later installed on your device 
 
-You can check your Java version with:
- `java -version`
+      You can check your Java version with:
+       `java -version`
 
-If you don't have Java installed, you can install it using:
-- macOS (Homebrew):
- `brew install openjdk@17`
-- Windows:
- `Download Java 17+ from https://adoptium.net/ and follow the installer guides.`
-- Linux:
- `sudo apt install openjdk-17-jdk`
+      If you don't have Java installed, you can install it using:
+      - macOS (Homebrew):
+       `brew install openjdk@17`
+      - Windows:
+       `Download Java 17+ from https://adoptium.net/ and follow the installer guides.`
+      - Linux:
+       `sudo apt install openjdk-17-jdk`
 
-  Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
-  keyword matching, ATS scoring, etc.) will still function.
+        Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
+        keyword matching, ATS scoring, etc.) will still function.
 ---
 
    
