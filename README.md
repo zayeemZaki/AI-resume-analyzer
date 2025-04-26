@@ -23,8 +23,6 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 
       Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
       keyword matching, ATS scoring, etc.) will still function.
----
-
    
 3. Set Up the Virtual Environment:
    ### for macOS/Linux
@@ -32,13 +30,11 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
    
    `source venv/bin/activate`
    
-   ---
    ### for windows
    `python -m venv venv`
    
    `venv\Scripts\activate`
    
-   ---
 5. Install Dependencies
    
    `pip install -r requirements.txt` or
