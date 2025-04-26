@@ -5,10 +5,11 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
 
 ## How to Run the Application
 
-1. Clone the Repository:
+1. Clone the Repository: (Note you do not need to clone the project repository if 
       `git clone https://github.com/zayeemZaki/AI-resume-analyzer.git`
+      `cd AI-resume-analyzer`
 
-2. Skip this step if you already have Java 17 or later installed on your device 
+3. Skip this step if you already have Java 17 or later installed on your device 
 
       You can check your Java version with:
        `java -version`
@@ -24,7 +25,7 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
       Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
       keyword matching, ATS scoring, etc.) will still function.
    
-3. Set Up the Virtual Environment:
+4. Set Up the Virtual Environment:
    ### for macOS/Linux
    `python3 -m venv venv`
    
