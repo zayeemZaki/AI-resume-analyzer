@@ -36,6 +36,28 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
    `python app.py`
 11. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
 
+Skip the steps below if you already have Java 17 or later installed.
+
+#Important Note about Grammar Checking (Java 17 Requirement)
+This application uses language_tool_python for grammar and writing analysis.
+language_tool_python requires Java 17 or higher to be installed on the system.
+
+You can check your Java version with:
+ java -version
+
+If you don't have Java installed, you can install it using:
+- macOS (Homebrew):
+ brew install openjdk@17
+- Windows:
+ Download Java 17+ from https://adoptium.net/ and follow the installer guides.
+- Linux:
+ sudo apt install openjdk-17-jdk
+
+Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
+keyword matching, ATS scoring, etc.) will still function.
+---
+
+---
 #Notes
 On first run, the app may download:
 SpaCy models (en_core_web_lg, en_core_web_sm)
