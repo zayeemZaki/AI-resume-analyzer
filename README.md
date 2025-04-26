@@ -21,8 +21,8 @@ An AI-powered tool that analyzes resumes and compares them with job descriptions
       - Linux:
        `sudo apt install openjdk-17-jdk`
 
-        Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
-        keyword matching, ATS scoring, etc.) will still function.
+      Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
+      keyword matching, ATS scoring, etc.) will still function.
 ---
 
    
