@@ -1,0 +1,29 @@
+Diptesh Shahi Thakuri Toledo, OH I dthakur@rockets.utoledo.edu I 5679014258 EDUCATION Bachelor of Science in Computer Science CGPA: 3.57
+
+• Leadership: Juice House Member, E-board Member (NSO), Member of IEEE and coding&&club, UT.
+
+• Achievements: Dean’s List Spring and Fall 2024, International Rocket Scholarship, Klopping Engineering Scholarship, Rieman Scholarship Fund, Russell J. Ebeid Scholarship. RELEVANT EXPERIENCE IME Life Insurance Company Limited, Kathmandu, Nepal
+
+• Resolved 300+ technical support tickets, troubleshooting hardware/software/network issues with a 95% resolution rate while coordinating other office duties, improving operational efficiency by 20%
+
+• Analyzed system logs to identify performance bottlenecks, reducing troubleshooting time by 30% while maintaining an inventory of over 200 IT assets to ensure optimal functionality
+
+• Assisted in process optimization, streamlining IT asset management and reducing manual documentation time by 40% across all departments through better organization and labeling strategies RELEVANT PROJECTS
+
+• Developed a multi-client chat application using Python, sockets, and threading, supporting up to 10 simultaneous users with real-time messaging, private chats, and a GUI, enabling instant communication and reducing delays compared to traditional methods.
+
+• Developed a Java-based Bank Account Management System with features like account creation, balance checks, transactions, and customer management, leveraging MySQL and JDBC for secure, real-time data storage to automate processes, reduce manual tasks, and improve transaction efficiency.
+
+• Developed a multi-threaded program in C that simulates a producer-consumer problem using semaphores and mutex locks, ensuring synchronized access to shared resources and preventing race conditions. Optimized buffer management to handle up to 10 concurrent threads, reducing processing time by 15% and improving execution efficiency by 20%. and optimized settings via DOE, reducing defects by 12% and improving Cpk from 1.10 to 1.35. TECHNICAL SKILLS
+
+• Programming: Java, C, C++, Python, MATLAB, Git, HTML, CSS, JavaScript, TypeScript
+
+• Database Management: SQL, MySQL, PostgreSQL, MongoDB, Database Optimization
+
+• Operating Systems: Linux System Administration, Bash Scripting, Multithreading, System Calls (fork, exec, pipes), Virtualization (VMware, Docker)
+
+• Networking & Security: Wireshark, TCP/IP, Packet Analysis, Network Protocols, VPNs, Firewalls, Cryptography, Kali Linux COLLEGIATE EXPERIENCE
+
+• Relevant Coursework: Data Structures & Algorithms, Computer Architecture, Programming Languages and Paradigms, Fundamentals of Cyber Security, Operating Systems and Systems Programming.
+
+• Technical Activities & Labs: Network Security Lab, Cybersecurity and Machine Learning Hands-on.
