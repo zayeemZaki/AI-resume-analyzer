@@ -1,32 +1,63 @@
-# AI Resume Analyzer
-
-An **AI-powered web application** that evaluates resumes for **ATS (Applicant Tracking System) compatibility**.  
-It uses **Natural Language Processing (NLP)** to compare resumes against job descriptions and provides feedback on:
-
-- ✅ Keyword relevance and coverage
-- ✅ Grammar and writing quality
-- ✅ Formatting consistency
-- ✅ Overall ATS score
+# AI Resume Analyzer – README
+An AI-powered tool that analyzes resumes and compares them with job descriptions using NLP techniques. It checks formatting, grammar, keyword relevance, and ATS compatibility.
 
 ---
 
-## 🚀 Features
-- Upload resumes in **PDF** or **DOCX** format
-- Compare against any job description
-- Keyword extraction using **SkillNER**
-- Grammar checking powered by **LanguageTool** (Java backend)
-- ATS scoring with **spaCy** and **transformers**
-- Simple, responsive Flask-based web UI
+## How to Run the Application
+
+1. Clone the Repository:
+      `git clone https://github.com/zayeemZaki/AI-resume-analyzer.git`
+2. Get inside the repo folder:
+      `cd AI-resume-analyzer`
+
+3. Skip this step if you already have Java 17 or later installed on your device 
+
+      You can check your Java version with:
+       `java -version`
+
+      If you don't have Java installed, you can install it using:
+      - macOS (Homebrew):
+       `brew install openjdk@17`
+      - Windows:
+       `Download Java 17+ from https://adoptium.net/ and follow the installer guides.`
+      - Linux:
+       `sudo apt install openjdk-17-jdk`
+
+      Without Java 17+, the grammar checking feature will not work, but other parts of the application (resume
+      keyword matching, ATS scoring, etc.) will still function.
+   
+4. Set Up the Virtual Environment:
+   ### for macOS/Linux
+   `python3 -m venv venv`
+   
+   `source venv/bin/activate`
+   
+   ### for windows
+   `python -m venv venv`
+   
+   `venv\Scripts\activate`
+   
+5. Install Dependencies
+   
+   `pip install -r requirements.txt` or
+   
+   `pip3 install -r requirements.txt`
+7. Download Required Language Models
+   
+   `python -m spacy download en_core_web_lg`
+   
+   `python -m spacy download en_core_web_sm`
+9. Run the Application
+
+   `python app.py`
+11. Then, click on the generated local address http://127.0.0.1:5000/, which will open the landing page of the web application in your browser.
+
 
 ---
-
-## ⚙️ Requirements
-
-- **Python 3.9 – 3.12**  
-- **pip** (latest version recommended)  
-- **Java 17+** (required only for grammar checking via LanguageTool)  
-
-Check versions:
-```bash
-python --version
-java -version
+#Notes
+On first run, the app may download:
+SpaCy models (en_core_web_lg, en_core_web_sm)
+NLTK stopwords
+LanguageTool grammar checker backend (~250MB)
+Hugging Face tokenizer dependencies (e.g., protobuf)
+All files are cached locally and won’t be re-downloaded in future runs.
